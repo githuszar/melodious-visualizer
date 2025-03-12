@@ -1,3 +1,4 @@
+
 import { UserDatabase, UserRecord, UserMusicData } from "@/types/spotify";
 import { toast } from "sonner";
 
@@ -155,7 +156,7 @@ export const convertToUserRecord = (userData: UserMusicData): UserRecord => {
   
   return {
     id: userData.userId,
-    name: "Spotify User", // Poderia ser obtido de userData.display_name se disponível
+    name: userData.userProfile?.name || "Spotify User",
     timestamp: userData.lastUpdated,
     top_artist: topArtist,
     top_genre: topGenre,
@@ -260,64 +261,14 @@ export const saveUserMusicDataToDatabase = async (userData: UserMusicData): Prom
   }
 };
 
-// Inicializar com dados fictícios se o banco de dados estiver vazio
+// Substituir a antiga função que inicializava com dados mock
 export const initializeWithMockDataIfEmpty = async (): Promise<void> => {
   try {
-    const records = await getAllUserRecords();
-    
-    if (records.length === 0) {
-      console.log("Database is empty, initializing with mock data");
-      
-      // Gerar 100 registros fictícios
-      const mockRecords: UserRecord[] = [];
-      const faker = {
-        randomName: () => {
-          const firstNames = ["Alex", "Jordan", "Taylor", "Morgan", "Riley", "Casey", "Quinn", "Avery"];
-          const lastNames = ["Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller", "Wilson"];
-          return `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
-        },
-        randomArtist: () => {
-          const artists = ["Drake", "Taylor Swift", "Kanye West", "Billie Eilish", "The Weeknd", "Ariana Grande", "Post Malone", "Kendrick Lamar"];
-          return artists[Math.floor(Math.random() * artists.length)];
-        },
-        randomGenre: () => {
-          const genres = ["Pop", "Hip-Hop", "Rock", "Electronic", "R&B", "Alternative", "Country", "Jazz"];
-          return genres[Math.floor(Math.random() * genres.length)];
-        }
-      };
-      
-      for (let i = 0; i < 100; i++) {
-        const timestamp = new Date();
-        timestamp.setDate(timestamp.getDate() - i); // Cada registro é um dia antes
-        
-        // Gerar seed de alta precisão
-        const timestampMs = timestamp.getTime();
-        const randomFactor = Math.random() * 1000000;
-        const highPrecisionSeed = parseInt(
-          `${timestampMs}${Math.floor(randomFactor)}`.substring(0, 16)
-        );
-        
-        mockRecords.push({
-          id: `mock-user-${i}-${Date.now()}`,
-          name: faker.randomName(),
-          timestamp: timestamp.toISOString(),
-          top_artist: faker.randomArtist(),
-          top_genre: faker.randomGenre(),
-          energy: Math.random(),
-          valence: Math.random(),
-          danceability: Math.random(),
-          acousticness: Math.random(),
-          music_score: Math.random() * 100,
-          high_precision_seed: highPrecisionSeed
-        });
-      }
-      
-      // Importar os registros fictícios
-      await importJSONToDatabase({ users: mockRecords });
-      console.log("Mock data initialized successfully");
-    }
+    // Apenas verificar se o banco de dados está acessível
+    await getAllUserRecords();
+    console.log("Database initialized successfully");
   } catch (error) {
-    console.error("Error initializing with mock data:", error);
+    console.error("Error initializing database:", error);
   }
 };
 

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { UserMusicData } from "@/types/spotify";
 import { handleSpotifyCallback, isLoggedIn } from "@/services/spotifyAuth";
-import { getMockUserMusicData, getRealUserMusicData } from "@/services/spotifyApi";
+import { getRealUserMusicData } from "@/services/spotifyApi";
 import { getUserMusicData, saveUserMusicData, initializeDatabase, clearStoredData } from "@/services/dataStorage";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
@@ -102,22 +102,21 @@ const Index = () => {
   const fetchUserData = async (forceRefresh = false) => {
     setIsLoading(true);
     try {
-      let data: UserMusicData;
-      
       const loggedIn = await isLoggedIn();
-      if (loggedIn) {
-        console.log("Fetchando dados reais do usuário da API do Spotify");
-        // User is logged in, fetch real data from Spotify API
-        data = await getRealUserMusicData();
-        console.log("Dados obtidos com sucesso da API do Spotify");
-        
-        // Armazenar timestamp do login atual
-        localStorage.setItem("spotify_last_login_time", Date.now().toString());
-      } else {
-        // Use mock data for development or if user is not logged in
-        data = await getMockUserMusicData();
-        console.log("Usando dados de exemplo (usuário não está logado)");
+      if (!loggedIn) {
+        console.log("Usuário não está logado, não é possível buscar dados");
+        setIsLoading(false);
+        setUserData(null);
+        return;
       }
+      
+      console.log("Fetchando dados reais do usuário da API do Spotify");
+      // User is logged in, fetch real data from Spotify API
+      const data = await getRealUserMusicData();
+      console.log("Dados obtidos com sucesso da API do Spotify");
+      
+      // Armazenar timestamp do login atual
+      localStorage.setItem("spotify_last_login_time", Date.now().toString());
       
       // Save the data to local storage and database
       saveUserMusicData(data);
