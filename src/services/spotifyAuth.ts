@@ -5,7 +5,8 @@ import { toast } from "sonner";
 // Spotify API configuration
 const CLIENT_ID = "e983ab76967541819658cb3126d9f3df";
 const CLIENT_SECRET = "4f4d1a7a3697434db2a0edc2c484f80c";
-const REDIRECT_URI = "https://your-music-image.lovable.app/callback";
+// Usando URL relativa para o callback para evitar problemas de ambiente
+const REDIRECT_URI = `${window.location.origin}/callback`;
 const SCOPES = [
   "user-read-private",
   "user-read-email",
