@@ -54,21 +54,49 @@ const Index = () => {
       try {
         const loggedIn = await isLoggedIn();
         if (loggedIn) {
-          console.log("Usuário está logado, limpando dados antigos e buscando dados frescos");
-          // Limpar dados existentes e sempre forçar a atualização dos dados a cada login
-          await clearStoredData();
-          await fetchUserData(true);
+          console.log("Usuário está logado, verificando dados frescos");
+          
+          // Verificar timestamp do último login para decidir se precisa atualizar dados
+          const lastLoginTime = localStorage.getItem("spotify_last_login_time");
+          const currentTime = Date.now();
+          const ONE_HOUR = 60 * 60 * 1000; // 1 hora em milissegundos
+          
+          // Se não há registro de último login ou se passou mais de 1 hora, busca dados novos
+          if (!lastLoginTime || (currentTime - parseInt(lastLoginTime)) > ONE_HOUR) {
+            console.log("Buscando dados frescos (último login expirado ou inexistente)");
+            await clearStoredData();
+            await fetchUserData(true);
+          } else {
+            // Tentar usar dados em cache primeiro, mas se falhar, buscar novos
+            const cachedData = getUserMusicData();
+            if (cachedData) {
+              console.log("Usando dados em cache (login recente)");
+              setUserData(cachedData);
+              setIsLoading(false);
+            } else {
+              console.log("Cache vazio, buscando dados novos");
+              await fetchUserData(true);
+            }
+          }
         } else {
           console.log("Usuário não está logado");
+          // Garantir que não existam dados de usuário no estado
+          setUserData(null);
           setIsLoading(false);
         }
       } catch (error) {
         console.error("Erro ao verificar login:", error);
         setIsLoading(false);
+        setUserData(null); // Resetar dados em caso de erro
       }
     };
     
     initializeApp();
+    
+    // Limpar o estado quando o componente for desmontado
+    return () => {
+      setUserData(null);
+    };
   }, []);
   
   const fetchUserData = async (forceRefresh = false) => {
@@ -82,6 +110,9 @@ const Index = () => {
         // User is logged in, fetch real data from Spotify API
         data = await getRealUserMusicData();
         console.log("Dados obtidos com sucesso da API do Spotify");
+        
+        // Armazenar timestamp do login atual
+        localStorage.setItem("spotify_last_login_time", Date.now().toString());
       } else {
         // Use mock data for development or if user is not logged in
         data = await getMockUserMusicData();
@@ -103,10 +134,14 @@ const Index = () => {
         if (storedData) {
           setUserData(storedData);
           toast.info("Usando dados em cache.");
+        } else {
+          // Se não temos dados no cache, resetar o estado
+          setUserData(null);
         }
       } else {
         // Se estamos forçando atualização, não devemos usar cache
         console.log("Ignorando dados em cache pois estamos forçando atualização");
+        setUserData(null);
       }
     } finally {
       setIsLoading(false);

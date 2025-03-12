@@ -22,6 +22,7 @@ const SCOPES = [
 const TOKEN_KEY = "spotify_token";
 const TOKEN_EXPIRY_KEY = "spotify_token_expiry";
 const REFRESH_TOKEN_KEY = "spotify_refresh_token";
+const LAST_LOGIN_TIME_KEY = "spotify_last_login_time";
 
 /**
  * Initiates the Spotify OAuth flow
@@ -32,6 +33,9 @@ export const initiateSpotifyLogin = () => {
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem("spotify_auth_state");
+  localStorage.removeItem(LAST_LOGIN_TIME_KEY);
+  localStorage.removeItem("music_user_data");
+  localStorage.removeItem("music_image");
   
   // Generate a random state value for CSRF protection
   const state = Math.random().toString(36).substring(2, 15);
@@ -87,6 +91,7 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
     const expiryTime = Date.now() + tokenResponse.expires_in * 1000;
     localStorage.setItem(TOKEN_KEY, tokenResponse.access_token);
     localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+    localStorage.setItem(LAST_LOGIN_TIME_KEY, Date.now().toString());
     
     // Save refresh token if available
     if (tokenResponse.refresh_token) {
@@ -219,13 +224,33 @@ export const logout = async (): Promise<void> => {
     toast.success("Desconectado do Spotify com sucesso");
     
     // Redirecionar para a página de logout do Spotify para forçar o logout na sessão do Spotify
-    // e depois voltar para a página inicial da aplicação
-    window.location.href = "https://www.spotify.com/logout/";
+    const spotifyLogoutUrl = "https://www.spotify.com/logout/";
+    const returnUrl = window.location.origin;
     
-    // Não precisamos do setTimeout aqui porque o navegador será redirecionado pelo Spotify
-    // quando o logout for concluído
+    // Criar um iframe oculto para fazer o logout do Spotify sem sair da página
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = spotifyLogoutUrl;
+    document.body.appendChild(iframe);
+    
+    // Quando o iframe terminar de carregar, removê-lo e redirecionar para a página inicial
+    iframe.onload = () => {
+      document.body.removeChild(iframe);
+      window.location.href = returnUrl;
+    };
+    
+    // Caso o iframe falhe após 3 segundos, forçar o redirecionamento
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+        window.location.href = returnUrl;
+      }
+    }, 3000);
   } catch (error) {
     console.error("Erro ao fazer logout:", error);
     toast.error("Erro ao desconectar. Alguns dados podem não ter sido limpos.");
+    
+    // Mesmo em caso de erro, redirecionar para a página inicial
+    window.location.href = window.location.origin;
   }
 };

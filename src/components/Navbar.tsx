@@ -25,8 +25,13 @@ const Navbar = () => {
     };
     
     window.addEventListener('storage', handleStorageChange);
+    
+    // Verificar status de login periodicamente (a cada 30 segundos)
+    const intervalId = setInterval(checkLoginStatus, 30000);
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -36,14 +41,37 @@ const Navbar = () => {
     localStorage.removeItem("spotify_token_expiry");
     localStorage.removeItem("spotify_refresh_token");
     localStorage.removeItem("spotify_auth_state");
+    localStorage.removeItem("music_user_data");
+    localStorage.removeItem("music_image");
+    localStorage.removeItem("spotify_user");
+    localStorage.removeItem("spotify_last_login_time");
     
+    // Limpar também qualquer cookie relacionado ao Spotify
+    document.cookie.split(";").forEach(cookie => {
+      const [name] = cookie.trim().split("=");
+      if (name.includes("spotify")) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+      }
+    });
+    
+    // Iniciar nova autenticação
     initiateSpotifyLogin();
   };
 
   const handleLogout = async () => {
-    await logout();
-    setLoggedIn(false);
-    // Não precisamos chamar window.location.reload() aqui porque o logout redireciona para o Spotify
+    try {
+      await logout();
+      setLoggedIn(false);
+      toast.success("Logout realizado com sucesso. Página será recarregada.");
+      
+      // Forçar atualização da página após um breve delay para garantir que a UI seja atualizada
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      toast.error("Falha ao fazer logout. Tente novamente.");
+    }
   };
 
   return (

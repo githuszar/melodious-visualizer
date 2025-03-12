@@ -25,7 +25,8 @@ export const clearStoredData = async (): Promise<void> => {
       "spotify_token_expiry",
       "spotify_refresh_token",
       "spotify_auth_state",
-      "spotify_user"
+      "spotify_user",
+      "spotify_last_login_time"
     ];
     
     // Remover cada chave individualmente
