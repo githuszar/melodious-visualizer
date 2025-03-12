@@ -10,11 +10,17 @@ const Navbar = () => {
   
   useEffect(() => {
     // Verificar status de login quando o componente é montado
-    setLoggedIn(isLoggedIn());
+    const checkLoginStatus = async () => {
+      const status = await isLoggedIn();
+      setLoggedIn(status);
+    };
+    
+    checkLoginStatus();
     
     // Atualizar status de login quando o localStorage mudar
-    const handleStorageChange = () => {
-      setLoggedIn(isLoggedIn());
+    const handleStorageChange = async () => {
+      const status = await isLoggedIn();
+      setLoggedIn(status);
     };
     
     window.addEventListener('storage', handleStorageChange);
