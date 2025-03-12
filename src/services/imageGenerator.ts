@@ -1,3 +1,4 @@
+
 import { MusicIndex } from "@/types/spotify";
 
 // Enhanced Perlin Noise class with higher precision
@@ -118,29 +119,17 @@ export const generatePerlinImage = (
   const persistence = 0.4 + (musicIndex.danceability * 0.4); // How much each octave contributes
   const colorMultiplier = musicIndex.valence > 0.5 ? 1.2 : 0.8; // Brighter for high valence
   
-  // Christmas color palette - red, green, gold, white
-  const christmasColors = [
-    "#e53935", // Christmas red
-    "#388e3c", // Christmas green
-    "#f9a825", // Gold/yellow
-    "#f5f5f5"  // Snow white
-  ];
-  
-  // Use Christmas colors instead of the music index's colors
-  const { colorPalette } = { 
-    colorPalette: musicIndex.valence > 0.5 
-      ? ["#e53935", "#4caf50", "#f9a825", "#f5f5f5"] // Bright Christmas
-      : ["#880e4f", "#1b5e20", "#bf360c", "#263238"]  // Dark Christmas
-  };
+  // Use color palette from music index
+  const { colorPalette } = musicIndex;
   
   // Function to draw on any canvas context
   const draw = (context: CanvasRenderingContext2D) => {
-    // Christmas-themed gradient background
+    // Create a gradient background based on the mood
     const gradient = context.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0, colorPalette[0]);    // Red
-    gradient.addColorStop(0.33, colorPalette[1]); // Green
-    gradient.addColorStop(0.66, colorPalette[2]); // Gold
-    gradient.addColorStop(1, colorPalette[3]);    // White
+    gradient.addColorStop(0, colorPalette[0]);
+    gradient.addColorStop(0.33, colorPalette[1]);
+    gradient.addColorStop(0.66, colorPalette[2]);
+    gradient.addColorStop(1, colorPalette[3] || colorPalette[0]);
     
     context.fillStyle = gradient;
     context.fillRect(0, 0, size, size);
@@ -182,88 +171,58 @@ export const generatePerlinImage = (
       }
     }
     
-    // Add Christmas-themed visual features
+    // Add some visual features based on music characteristics
     
-    // Add snowflakes for a Christmas feel
-    const snowflakeCount = 80 + Math.floor((1 - musicIndex.energy) * 120); // More snowflakes for calmer music
-    
-    context.globalCompositeOperation = "lighter";
-    context.fillStyle = "rgba(255, 255, 255, 0.8)";
-    
-    for (let i = 0; i < snowflakeCount; i++) {
-      const seedOffset = (seed % 1000) / 1000;
-      const x = size * ((seedOffset + i * 0.1) % 1);
-      const y = size * ((seedOffset + i * 0.15) % 1);
-      const radius = 1 + Math.random() * 3;
-      
-      context.beginPath();
-      context.arc(x, y, radius, 0, Math.PI * 2);
-      context.fill();
-      
-      // Occasionally add a larger, more detailed snowflake
-      if (i % 10 === 0) {
-        drawSnowflake(context, x, y, 5 + Math.random() * 10);
-      }
+    // Add patterns based on energy level
+    if (musicIndex.energy > 0.7) {
+      // High energy - add dynamic waves or lines
+      drawWavePattern(context, size, seed);
+    } else if (musicIndex.energy > 0.4) {
+      // Medium energy - add grid or dots
+      drawGridPattern(context, size, seed);
+    } else {
+      // Low energy - add subtle dots
+      drawDotPattern(context, size, seed);
     }
     
-    // Add subtle ornament-like circles with Christmas colors
-    if (musicIndex.energy > 0.5) {
-      for (let i = 0; i < 7; i++) {
-        const ornamentColor = christmasColors[i % christmasColors.length];
-        const cx = size * (0.2 + (seed + i * 1000) % 600 / 1000);
-        const cy = size * (0.2 + (seed + i * 1500) % 600 / 1000);
-        const radius = size * (0.05 + musicIndex.energy * 0.08);
-        
-        // Draw ornament
-        context.globalCompositeOperation = "overlay";
-        context.fillStyle = ornamentColor;
-        context.beginPath();
-        context.arc(cx, cy, radius, 0, Math.PI * 2);
-        context.fill();
-        
-        // Add highlight to ornament
-        context.globalCompositeOperation = "lighter";
-        const gradientOrnament = context.createRadialGradient(
-          cx - radius * 0.3, cy - radius * 0.3, radius * 0.1,
-          cx, cy, radius
-        );
-        gradientOrnament.addColorStop(0, "rgba(255, 255, 255, 0.8)");
-        gradientOrnament.addColorStop(1, "transparent");
-        
-        context.fillStyle = gradientOrnament;
-        context.beginPath();
-        context.arc(cx, cy, radius, 0, Math.PI * 2);
-        context.fill();
-      }
+    // Apply effects based on acousticness
+    if (musicIndex.acousticness > 0.6) {
+      // For acoustic music, add more organic patterns
+      context.globalCompositeOperation = "overlay";
+      context.globalAlpha = 0.2;
+      drawLinePattern(context, size, seed);
+      context.globalAlpha = 1.0;
     }
     
     // Reset composite operation
     context.globalCompositeOperation = "source-over";
     
+    // Add mood-based visual elements
+    if (musicIndex.valence > 0.7) {
+      // Happy/upbeat music gets bright accents
+      for (let i = 0; i < 5; i++) {
+        const cx = size * ((seed + i * 100) % 1000) / 1000;
+        const cy = size * ((seed + i * 200) % 1000) / 1000;
+        const radius = size * (0.05 + musicIndex.energy * 0.08);
+        
+        context.globalCompositeOperation = "lighter";
+        const gradientCircle = context.createRadialGradient(
+          cx, cy, 0,
+          cx, cy, radius
+        );
+        gradientCircle.addColorStop(0, "rgba(255, 255, 255, 0.8)");
+        gradientCircle.addColorStop(1, "transparent");
+        
+        context.fillStyle = gradientCircle;
+        context.beginPath();
+        context.arc(cx, cy, radius, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+    
     // Apply the modified pixels back to the canvas
     context.putImageData(imageData, 0, 0);
   };
-  
-  // Helper function to draw a snowflake
-  function drawSnowflake(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-    
-    // Draw the six arms of the snowflake
-    for (let i = 0; i < 6; i++) {
-      ctx.rotate(Math.PI / 3);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(size, 0);
-      ctx.lineTo(size * 0.8, size * 0.2);
-      ctx.lineTo(size * 0.8, -size * 0.2);
-      ctx.closePath();
-      ctx.fill();
-    }
-    
-    ctx.restore();
-  }
   
   // Helper pattern functions
   function drawLinePattern(ctx: CanvasRenderingContext2D, size: number, seed: number) {

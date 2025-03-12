@@ -1,4 +1,3 @@
-
 import { 
   SpotifyUser, 
   SpotifyArtist, 
@@ -9,7 +8,8 @@ import {
   UserMusicData,
   SpotifyPlaylist,
   AvailableGenres,
-  UserProfile
+  UserProfile,
+  MusicIndex
 } from "@/types/spotify";
 import { getAccessToken } from "./spotifyAuth";
 import axios from "axios";
@@ -178,19 +178,23 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
     // Extract top genres
     const topGenres = extractTopGenres(topArtists);
     
-    // Calculate music index based on audio features
+    // Calculate music index based on audio features with improved precision
     const avgEnergy = audioFeatures.reduce((sum, feat) => sum + feat.energy, 0) / audioFeatures.length || 0.5;
     const avgValence = audioFeatures.reduce((sum, feat) => sum + feat.valence, 0) / audioFeatures.length || 0.5;
     const avgDanceability = audioFeatures.reduce((sum, feat) => sum + feat.danceability, 0) / audioFeatures.length || 0.5;
     const avgAcousticness = audioFeatures.reduce((sum, feat) => sum + feat.acousticness, 0) / audioFeatures.length || 0.3;
     const avgTempos = audioFeatures.reduce((sum, feat) => sum + feat.tempo, 0) / audioFeatures.length || 120;
     
-    // Generate color palette based on audio features with higher precision
+    // Generate color palette based on audio features with higher precision and visual aesthetics
     const colorPalette = [
-      `hsl(${Math.floor(360 * avgValence)}, 70%, 60%)`,
-      `hsl(${Math.floor(200 * avgEnergy)}, 80%, 50%)`,
-      `hsl(${Math.floor(100 * avgDanceability)}, 60%, 45%)`,
-      `hsl(${Math.floor(290 * avgAcousticness)}, 50%, 40%)`
+      // Energy color (red to blue spectrum)
+      `hsl(${Math.floor(240 - (avgEnergy * 240))}, 80%, ${Math.floor(40 + avgValence * 30)}%)`,
+      // Valence color (yellow to purple spectrum)
+      `hsl(${Math.floor(60 + (160 * (1 - avgValence)))}, 80%, ${Math.floor(45 + avgEnergy * 25)}%)`,
+      // Dance color (green to pink spectrum)
+      `hsl(${Math.floor(120 + (300 * avgDanceability) % 360)}, 70%, ${Math.floor(50 + avgValence * 20)}%)`,
+      // Acousticness color (brown to cyan spectrum)
+      `hsl(${Math.floor(30 + (150 * avgAcousticness))}, ${Math.floor(60 + avgEnergy * 30)}%, ${Math.floor(40 + avgValence * 30)}%)`
     ];
     
     // Create a much more unique score with high precision
@@ -268,7 +272,7 @@ export const getMockUserMusicData = async () => {
       id: "37i9dQZF1DXcBWIGoYBM5M",
       name: "Today's Top Hits",
       description: "Spotify's top 50 global chart",
-      images: [{ url: "https://i.scdn.co/image/ab67706f00000003c1d2ccd8c5ab6eb26d3f2010", height: 300, width: 300 }],
+      images: [{ url: "https://i.scdn.co/image/ab67706f0000e5eb2183ea958d3777b6ecb878c7", height: 300, width: 300 }],
       owner: {
         id: "spotify",
         display_name: "Spotify"
@@ -281,7 +285,7 @@ export const getMockUserMusicData = async () => {
       id: "37i9dQZF1DWXRqgorJj26U",
       name: "Rock Classics",
       description: "Classic rock songs from the 60s to the 90s",
-      images: [{ url: "https://i.scdn.co/image/ab67706f00000003e8e28219724c2423afa4d320", height: 300, width: 300 }],
+      images: [{ url: "https://i.scdn.co/image/ab67706f0000e5ebe8e28219724c2423afa4d320", height: 300, width: 300 }],
       owner: {
         id: "spotify",
         display_name: "Spotify"
@@ -400,12 +404,16 @@ export const getMockUserMusicData = async () => {
   const avgDanceability = mockAudioFeatures.reduce((sum, feat) => sum + feat.danceability, 0) / mockAudioFeatures.length;
   const avgAcousticness = mockAudioFeatures.reduce((sum, feat) => sum + feat.acousticness, 0) / mockAudioFeatures.length;
   
-  // Generate color palette based on audio features
+  // Generate improved color palette based on audio features
   const colorPalette = [
-    `hsl(${Math.floor(360 * avgValence)}, 70%, 60%)`,
-    `hsl(${Math.floor(200 * avgEnergy)}, 80%, 50%)`,
-    `hsl(${Math.floor(100 * avgDanceability)}, 60%, 45%)`,
-    `hsl(${Math.floor(290 * avgAcousticness)}, 50%, 40%)`
+    // Energy color (red to blue spectrum)
+    `hsl(${Math.floor(240 - (avgEnergy * 240))}, 80%, ${Math.floor(40 + avgValence * 30)}%)`,
+    // Valence color (yellow to purple spectrum)
+    `hsl(${Math.floor(60 + (160 * (1 - avgValence)))}, 80%, ${Math.floor(45 + avgEnergy * 25)}%)`,
+    // Dance color (green to pink spectrum)
+    `hsl(${Math.floor(120 + (300 * avgDanceability) % 360)}, 70%, ${Math.floor(50 + avgValence * 20)}%)`,
+    // Acousticness color (brown to cyan spectrum)
+    `hsl(${Math.floor(30 + (150 * avgAcousticness))}, ${Math.floor(60 + avgEnergy * 30)}%, ${Math.floor(40 + avgValence * 30)}%)`
   ];
   
   // Calculate a unique score as a demo of an index
