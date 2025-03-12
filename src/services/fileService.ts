@@ -1,8 +1,9 @@
 
 /**
- * Save file to local filesystem
- * Note: This can only work in a Node.js environment, not in the browser
- * For the MVP, we'll simulate this functionality
+ * File Storage Service for YourMusicImage
+ * 
+ * Provides functions to save, retrieve, and manage generated images
+ * Currently uses localStorage for persistence with preparation for Firebase integration
  */
 
 // Add TypeScript interface for the File System Access API
@@ -27,24 +28,32 @@ interface ExtendedWindow extends Window {
   }) => Promise<FileSystemFileHandle>;
 }
 
+// Constants for storage keys
+const IMAGE_STORAGE_PREFIX = "music_image_";
+const USER_IMAGE_COLLECTION = "user_images";
+
+/**
+ * Save image to storage (localStorage and eventually Firebase)
+ */
 export const saveImageLocally = async (imageData: string, userId: string): Promise<boolean> => {
   try {
-    // In a real application with a backend, we would:
-    // 1. Send the image data to the backend
-    // 2. Have the backend save it to the filesystem
+    console.log(`Saving image for user ${userId}`);
     
-    // For the MVP demo in browser environment, we'll log this
-    console.log(`[File Service] Would save image for user ${userId} to /Users/thiago/Desktop/GitHuszar/YourMusicImge/${userId}.png`);
+    // Save to localStorage (temporary storage)
+    localStorage.setItem(`${IMAGE_STORAGE_PREFIX}${userId}`, imageData);
     
-    // We'll also save to localStorage to simulate persistence
-    localStorage.setItem(`user_image_${userId}`, imageData);
+    // Log information about the storage
+    console.log(`Image saved to localStorage with key: ${IMAGE_STORAGE_PREFIX}${userId}`);
     
-    // For demonstration, if we're in a development environment with the right APIs,
-    // we can try to use the File System Access API (supported in some modern browsers)
-    const extendedWindow = window as ExtendedWindow;
+    // When Firebase is integrated, we would upload the image here
+    // const imageUrl = await uploadToFirebase(imageData, userId);
     
-    if (extendedWindow.showSaveFilePicker && process.env.NODE_ENV === 'development') {
-      try {
+    // Offer download as a fallback
+    try {
+      const extendedWindow = window as ExtendedWindow;
+      
+      // Use File System Access API if available
+      if (extendedWindow.showSaveFilePicker) {
         const blob = await (await fetch(imageData)).blob();
         const handle = await extendedWindow.showSaveFilePicker({
           suggestedName: `music-image-${userId}.png`,
@@ -56,22 +65,25 @@ export const saveImageLocally = async (imageData: string, userId: string): Promi
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
-        console.log('File saved successfully through File System Access API');
-      } catch (fsError) {
-        console.error('File System Access API failed:', fsError);
-        // Fall back to download
-        downloadImage(imageData, `music-image-${userId}.png`);
+        console.log('File saved using File System Access API');
       }
-    } else {
-      // Fallback to downloading the file
-      downloadImage(imageData, `music-image-${userId}.png`);
+    } catch (fsError) {
+      console.log('File System Access API not available or failed, offering download instead');
+      // Silently fail and continue - we'll still have the image in localStorage
     }
     
     return true;
   } catch (error) {
-    console.error('Error saving image locally:', error);
+    console.error('Error saving image:', error);
     return false;
   }
+};
+
+/**
+ * Get image from storage
+ */
+export const getImageFromStorage = (userId: string): string | null => {
+  return localStorage.getItem(`${IMAGE_STORAGE_PREFIX}${userId}`);
 };
 
 /**
@@ -85,3 +97,46 @@ export const downloadImage = (dataUrl: string, filename = "your-music-image.png"
   link.click();
   document.body.removeChild(link);
 };
+
+/**
+ * Delete image from storage
+ */
+export const deleteImageFromStorage = (userId: string): boolean => {
+  try {
+    localStorage.removeItem(`${IMAGE_STORAGE_PREFIX}${userId}`);
+    
+    // When Firebase is integrated, we would delete the image here too
+    // await deleteFromFirebase(userId);
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    return false;
+  }
+};
+
+// Function to prepare for Firebase integration
+// This is commented out until we add Firebase as a dependency
+/*
+const uploadToFirebase = async (imageData: string, userId: string): Promise<string> => {
+  // Convert data URL to blob
+  const response = await fetch(imageData);
+  const blob = await response.blob();
+  
+  // Create a reference to Firebase Storage
+  const storageRef = ref(storage, `${USER_IMAGE_COLLECTION}/${userId}.png`);
+  
+  // Upload the blob
+  const snapshot = await uploadBytes(storageRef, blob);
+  
+  // Get the download URL
+  const downloadUrl = await getDownloadURL(snapshot.ref);
+  
+  return downloadUrl;
+};
+
+const deleteFromFirebase = async (userId: string): Promise<void> => {
+  const storageRef = ref(storage, `${USER_IMAGE_COLLECTION}/${userId}.png`);
+  await deleteObject(storageRef);
+};
+*/

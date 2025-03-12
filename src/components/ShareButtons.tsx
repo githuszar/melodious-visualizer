@@ -14,9 +14,9 @@ const ShareButtons = ({ imageData, userId }: ShareButtonsProps) => {
   const handleSaveLocally = async () => {
     const success = await saveImageLocally(imageData, userId);
     if (success) {
-      toast.success("Imagem salva localmente!");
+      toast.success("Imagem salva com sucesso!");
     } else {
-      toast.error("Falha ao salvar imagem localmente. Tente baixar manualmente.");
+      toast.error("Falha ao salvar imagem. Tente baixar manualmente.");
     }
   };
 
@@ -48,7 +48,7 @@ const ShareButtons = ({ imageData, userId }: ShareButtonsProps) => {
         onClick={handleSaveLocally}
       >
         <Save className="mr-2 h-4 w-4" />
-        Salvar Localmente
+        Salvar
       </Button>
       
       <Button 

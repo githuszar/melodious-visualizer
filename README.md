@@ -10,7 +10,7 @@ Uma aplicação web que gera uma visualização única e abstrata com base no se
    - CLIENT_SECRET: "4f4d1a7a3697434db2a0edc2c484f80c"
    - REDIRECT_URI: "https://your-music-image.lovable.app/callback"
 
-2. A aplicação usa armazenamento local para persistir os dados do usuário e as imagens geradas.
+2. A aplicação usa armazenamento local (localStorage) para persistir os dados do usuário e as imagens geradas.
 
 3. Para desenvolvimento local, você pode executar:
    ```
@@ -25,7 +25,6 @@ Uma aplicação web que gera uma visualização única e abstrata com base no se
 - Geração de um índice musical único
 - Criação de uma visualização abstrata baseada no perfil musical
 - Compartilhamento e download da imagem gerada
-- Salvar localmente no diretório `/Users/thiago/Desktop/GitHuszar/YourMusicImge`
 
 ## Tecnologias
 
@@ -34,6 +33,7 @@ Uma aplicação web que gera uma visualização única e abstrata com base no se
 - Tailwind CSS
 - API do Spotify
 - Perlin Noise para geração de imagens
+- LocalStorage para armazenamento temporário
 
 ## Endpoints da API do Spotify utilizados
 
@@ -44,7 +44,7 @@ Uma aplicação web que gera uma visualização única e abstrata com base no se
 
 ## Próximos passos
 
-- Implementar backend para armazenamento persistente
+- Implementar integração com Firebase para armazenamento persistente
 - Melhorar o algoritmo de geração de imagens
 - Adicionar mais opções de compartilhamento
 - Criar galeria pública de visualizações
