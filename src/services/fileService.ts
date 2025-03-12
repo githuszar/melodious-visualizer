@@ -4,6 +4,29 @@
  * Note: This can only work in a Node.js environment, not in the browser
  * For the MVP, we'll simulate this functionality
  */
+
+// Add TypeScript interface for the File System Access API
+interface FileSystemWritableFileStream extends WritableStream {
+  write(data: any): Promise<void>;
+  seek(position: number): Promise<void>;
+  truncate(size: number): Promise<void>;
+}
+
+interface FileSystemFileHandle {
+  createWritable(): Promise<FileSystemWritableFileStream>;
+}
+
+// Extend Window interface to include the File System Access API
+interface ExtendedWindow extends Window {
+  showSaveFilePicker?: (options?: {
+    suggestedName?: string;
+    types?: Array<{
+      description: string;
+      accept: Record<string, string[]>;
+    }>;
+  }) => Promise<FileSystemFileHandle>;
+}
+
 export const saveImageLocally = async (imageData: string, userId: string): Promise<boolean> => {
   try {
     // In a real application with a backend, we would:
@@ -18,10 +41,12 @@ export const saveImageLocally = async (imageData: string, userId: string): Promi
     
     // For demonstration, if we're in a development environment with the right APIs,
     // we can try to use the File System Access API (supported in some modern browsers)
-    if (window.showSaveFilePicker && process.env.NODE_ENV === 'development') {
+    const extendedWindow = window as ExtendedWindow;
+    
+    if (extendedWindow.showSaveFilePicker && process.env.NODE_ENV === 'development') {
       try {
         const blob = await (await fetch(imageData)).blob();
-        const handle = await window.showSaveFilePicker({
+        const handle = await extendedWindow.showSaveFilePicker({
           suggestedName: `music-image-${userId}.png`,
           types: [{
             description: 'PNG Image',
