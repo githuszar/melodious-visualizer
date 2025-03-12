@@ -1,0 +1,83 @@
+# Estrutura do MVP v1.1: music_insights_mvp
+
+# Dependências (requirements.txt)
+# requests==2.31.0
+# pandas==2.2.0
+# faker==20.1.0
+# pillow==10.2.0
+# numpy==1.26.0  # Para geração de ruído
+# perlin-noise==1.12  # Para gerar texturas suaves
+# matplotlib==3.7.1  # Para plotar imagens
+
+import os
+import random
+import requests
+import pandas as pd
+from faker import Faker
+from PIL import Image, ImageDraw
+import numpy as np
+from perlin_noise import PerlinNoise
+import matplotlib.pyplot as plt
+
+# Configuração inicial
+fake = Faker()
+
+# Simulação de dados de usuários
+num_users = 100
+users = []
+for _ in range(num_users):
+    users.append({
+        "id": fake.uuid4(),
+        "name": fake.name(),
+        "top_artist": random.choice(["Drake", "Taylor Swift", "Kanye West", "Billie Eilish", "The Weeknd"]),
+        "top_genre": random.choice(["Pop", "Hip-Hop", "Rock", "Electronic", "R&B"]),
+        "energy": random.uniform(0.3, 0.9),
+        "music_score": random.randint(10, 100)  # Índice musical
+    })
+
+# Transformando em DataFrame
+users_df = pd.DataFrame(users)
+
+# Manter apenas as últimas 30 entradas
+users_df = users_df.tail(30)
+
+# Criar diretório de visualizações se não existir
+if not os.path.exists("visualization"): os.makedirs("visualization")
+
+# Gerar imagem abstrata usando Perlin Noise
+def generate_perlin_image(user_id, score):
+    width, height = 500, 500
+    img = Image.new("RGB", (width, height), "black")
+    draw = ImageDraw.Draw(img)
+    
+    # Garantir que a seed seja um tipo suportado
+    seed_value = int(score) if isinstance(score, (int, float)) else hash(str(score)) % (2**32)
+    noise = PerlinNoise(octaves=3, seed=seed_value)
+    
+    for x in range(width):
+        for y in range(height):
+            value = int((noise([x/width, y/height]) + 1) * 127.5)  # Normaliza o valor entre 0-255
+            draw.point((x, y), (value, value//2, 255 - value))
+    
+    img_path = f"visualization/{user_id}.png"
+    img.save(img_path)
+    return img_path
+
+# Gerar uma única imagem por requisição
+def generate_and_plot_image():
+    user = users_df.sample(1).iloc[0]  # Seleciona um usuário aleatório
+    img_path = generate_perlin_image(user.id, user.music_score)
+    img = Image.open(img_path)
+    
+    plt.figure(figsize=(5,5))
+    plt.imshow(img)
+    plt.axis("off")
+    plt.title(f"User: {user.name}\nScore: {user.music_score}")
+    plt.show()
+    
+    print(f"Imagem gerada e exibida para {user.name}")
+
+# Gerar e plotar uma imagem
+generate_and_plot_image()
+
+print("MVP v1.1 atualizado com geração e exibição de imagens Perlin Noise!")
