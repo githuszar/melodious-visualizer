@@ -1,4 +1,3 @@
-
 import { MusicIndex } from "@/types/spotify";
 
 // Enhanced Perlin Noise class with higher precision
@@ -119,17 +118,29 @@ export const generatePerlinImage = (
   const persistence = 0.4 + (musicIndex.danceability * 0.4); // How much each octave contributes
   const colorMultiplier = musicIndex.valence > 0.5 ? 1.2 : 0.8; // Brighter for high valence
   
-  // Extract colors from the music index
-  const { colorPalette } = musicIndex;
+  // Christmas color palette - red, green, gold, white
+  const christmasColors = [
+    "#e53935", // Christmas red
+    "#388e3c", // Christmas green
+    "#f9a825", // Gold/yellow
+    "#f5f5f5"  // Snow white
+  ];
+  
+  // Use Christmas colors instead of the music index's colors
+  const { colorPalette } = { 
+    colorPalette: musicIndex.valence > 0.5 
+      ? ["#e53935", "#4caf50", "#f9a825", "#f5f5f5"] // Bright Christmas
+      : ["#880e4f", "#1b5e20", "#bf360c", "#263238"]  // Dark Christmas
+  };
   
   // Function to draw on any canvas context
   const draw = (context: CanvasRenderingContext2D) => {
-    // Draw gradient background
+    // Christmas-themed gradient background
     const gradient = context.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0, colorPalette[0]);
-    gradient.addColorStop(0.33, colorPalette[1]);
-    gradient.addColorStop(0.66, colorPalette[2]);
-    gradient.addColorStop(1, colorPalette[3]);
+    gradient.addColorStop(0, colorPalette[0]);    // Red
+    gradient.addColorStop(0.33, colorPalette[1]); // Green
+    gradient.addColorStop(0.66, colorPalette[2]); // Gold
+    gradient.addColorStop(1, colorPalette[3]);    // White
     
     context.fillStyle = gradient;
     context.fillRect(0, 0, size, size);
@@ -171,60 +182,57 @@ export const generatePerlinImage = (
       }
     }
     
-    // Add visual features based on music qualities with unique variations per user
-    if (musicIndex.energy > 0.6) {
-      // Add energy bursts for high energy music
-      for (let i = 0; i < 5; i++) {
-        // Use seed to vary positions slightly for each user
-        const seedOffset = (seed % 1000) / 1000;
-        const cx = size * (0.3 + (seedOffset + i * 0.1) % 0.4);
-        const cy = size * (0.3 + (seedOffset + i * 0.15) % 0.4);
-        const radius = size * (0.1 + musicIndex.energy * 0.2);
-        
-        const burstGradient = context.createRadialGradient(cx, cy, 0, cx, cy, radius);
-        burstGradient.addColorStop(0, `${colorPalette[i % colorPalette.length]}CC`);
-        burstGradient.addColorStop(1, "transparent");
-        
-        context.globalCompositeOperation = "screen";
-        context.fillStyle = burstGradient;
-        context.beginPath();
-        context.arc(cx, cy, radius, 0, Math.PI * 2);
-        context.fill();
+    // Add Christmas-themed visual features
+    
+    // Add snowflakes for a Christmas feel
+    const snowflakeCount = 80 + Math.floor((1 - musicIndex.energy) * 120); // More snowflakes for calmer music
+    
+    context.globalCompositeOperation = "lighter";
+    context.fillStyle = "rgba(255, 255, 255, 0.8)";
+    
+    for (let i = 0; i < snowflakeCount; i++) {
+      const seedOffset = (seed % 1000) / 1000;
+      const x = size * ((seedOffset + i * 0.1) % 1);
+      const y = size * ((seedOffset + i * 0.15) % 1);
+      const radius = 1 + Math.random() * 3;
+      
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+      
+      // Occasionally add a larger, more detailed snowflake
+      if (i % 10 === 0) {
+        drawSnowflake(context, x, y, 5 + Math.random() * 10);
       }
     }
     
-    if (musicIndex.valence < 0.4) {
-      // Add some dark vignette for low valence (sad) music
-      const vignetteGradient = context.createRadialGradient(
-        size/2, size/2, size*0.25, 
-        size/2, size/2, size*0.7
-      );
-      vignetteGradient.addColorStop(0, "transparent");
-      vignetteGradient.addColorStop(1, "rgba(0,0,0,0.7)");
-      
-      context.globalCompositeOperation = "multiply";
-      context.fillStyle = vignetteGradient;
-      context.fillRect(0, 0, size, size);
-    }
-    
-    // Make high danceability music more "bubbly"
-    if (musicIndex.danceability > 0.7) {
-      context.globalCompositeOperation = "overlay";
-      
-      // Generate unique positions based on seed
-      for (let i = 0; i < 8; i++) {
-        const seedMod = (seed + i * 1000) % 1000000;
-        const x = (seedMod % 1000) / 1000 * size;
-        const y = ((seedMod / 1000) % 1000) / 1000 * size;
-        const radius = size * 0.05 * (0.5 + musicIndex.danceability * 0.5);
+    // Add subtle ornament-like circles with Christmas colors
+    if (musicIndex.energy > 0.5) {
+      for (let i = 0; i < 7; i++) {
+        const ornamentColor = christmasColors[i % christmasColors.length];
+        const cx = size * (0.2 + (seed + i * 1000) % 600 / 1000);
+        const cy = size * (0.2 + (seed + i * 1500) % 600 / 1000);
+        const radius = size * (0.05 + musicIndex.energy * 0.08);
         
-        const bubbleGradient = context.createRadialGradient(x, y, 0, x, y, radius);
-        bubbleGradient.addColorStop(0, "rgba(255,255,255,0.4)");
-        bubbleGradient.addColorStop(1, "transparent");
-        
-        context.fillStyle = bubbleGradient;
+        // Draw ornament
+        context.globalCompositeOperation = "overlay";
+        context.fillStyle = ornamentColor;
         context.beginPath();
-        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.arc(cx, cy, radius, 0, Math.PI * 2);
+        context.fill();
+        
+        // Add highlight to ornament
+        context.globalCompositeOperation = "lighter";
+        const gradientOrnament = context.createRadialGradient(
+          cx - radius * 0.3, cy - radius * 0.3, radius * 0.1,
+          cx, cy, radius
+        );
+        gradientOrnament.addColorStop(0, "rgba(255, 255, 255, 0.8)");
+        gradientOrnament.addColorStop(1, "transparent");
+        
+        context.fillStyle = gradientOrnament;
+        context.beginPath();
+        context.arc(cx, cy, radius, 0, Math.PI * 2);
         context.fill();
       }
     }
@@ -234,35 +242,28 @@ export const generatePerlinImage = (
     
     // Apply the modified pixels back to the canvas
     context.putImageData(imageData, 0, 0);
-    
-    // Add a unique signature/pattern based on user's top genre if available
-    if (musicIndex.topGenres && musicIndex.topGenres.length > 0) {
-      // Use first letter of top genre as a basis for a pattern
-      const genreChar = musicIndex.topGenres[0].charCodeAt(0);
-      const patternType = genreChar % 4; // 4 pattern types
-      
-      context.globalCompositeOperation = "overlay";
-      context.globalAlpha = 0.2;
-      
-      switch (patternType) {
-        case 0: // Lines
-          drawLinePattern(context, size, seed);
-          break;
-        case 1: // Dots
-          drawDotPattern(context, size, seed);
-          break;
-        case 2: // Waves
-          drawWavePattern(context, size, seed);
-          break;
-        case 3: // Grid
-          drawGridPattern(context, size, seed);
-          break;
-      }
-      
-      context.globalAlpha = 1;
-      context.globalCompositeOperation = "source-over";
-    }
   };
+  
+  // Helper function to draw a snowflake
+  function drawSnowflake(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    
+    // Draw the six arms of the snowflake
+    for (let i = 0; i < 6; i++) {
+      ctx.rotate(Math.PI / 3);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(size * 0.8, size * 0.2);
+      ctx.lineTo(size * 0.8, -size * 0.2);
+      ctx.closePath();
+      ctx.fill();
+    }
+    
+    ctx.restore();
+  }
   
   // Helper pattern functions
   function drawLinePattern(ctx: CanvasRenderingContext2D, size: number, seed: number) {

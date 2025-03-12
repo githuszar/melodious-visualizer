@@ -49,9 +49,6 @@ const Navbar = () => {
           <Link to="/about" className="text-sm font-medium hover:text-spotify transition-colors">
             About
           </Link>
-          <Link to="/gallery" className="text-sm font-medium hover:text-spotify transition-colors">
-            Gallery
-          </Link>
           
           {loggedIn ? (
             <Button 

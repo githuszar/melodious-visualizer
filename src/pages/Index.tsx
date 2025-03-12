@@ -4,11 +4,11 @@ import { UserMusicData } from "@/types/spotify";
 import { handleSpotifyCallback, isLoggedIn } from "@/services/spotifyAuth";
 import { getMockUserMusicData, getRealUserMusicData } from "@/services/spotifyApi";
 import { getUserMusicData, saveUserMusicData, initializeDatabase } from "@/services/dataStorage";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import SpotifyMusicImage from "@/components/SpotifyMusicImage";
 import MusicStats from "@/components/MusicStats";
-import { Music, Headphones } from "lucide-react";
+import { Music, Headphones, Heart } from "lucide-react";
 import { initiateSpotifyLogin } from "@/services/spotifyAuth";
 import { toast } from "sonner";
 
@@ -149,8 +149,19 @@ const Index = () => {
       </main>
       
       <footer className="py-6 border-t border-gray-200 dark:border-gray-800">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>YourMusicImage | Created with ❤️ | Not affiliated with Spotify</p>
+        <div className="container mx-auto px-4 space-y-3">
+          <div className="flex items-center justify-center text-sm text-muted-foreground gap-1">
+            <p>Data provided by Spotify</p>
+            <img src="https://developer.spotify.com/assets/branding-guidelines/icon3@2x.png" alt="Spotify Logo" className="h-4 ml-1" />
+          </div>
+          <div className="text-center text-sm text-muted-foreground">
+            <p>
+              YourMusicImage | Created with <Heart className="inline-block h-3 w-3 text-red-500 mx-1" fill="currentColor" /> by Melodious Visualizer Team
+            </p>
+          </div>
+          <div className="text-center text-xs text-muted-foreground">
+            <p>This website is not affiliated with Spotify. Spotify is a trademark of Spotify AB.</p>
+          </div>
         </div>
       </footer>
     </div>
