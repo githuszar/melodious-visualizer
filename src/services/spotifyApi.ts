@@ -1,3 +1,4 @@
+
 import { 
   SpotifyUser, 
   SpotifyArtist, 
@@ -5,9 +6,13 @@ import {
   TopItemsResponse, 
   AudioFeatures,
   TimeRange,
-  UserMusicData
+  UserMusicData,
+  SpotifyPlaylist,
+  AvailableGenres,
+  UserProfile
 } from "@/types/spotify";
 import { getAccessToken } from "./spotifyAuth";
+import axios from "axios";
 
 const BASE_URL = "https://api.spotify.com/v1";
 
@@ -15,26 +20,26 @@ const BASE_URL = "https://api.spotify.com/v1";
  * Make authenticated request to Spotify API
  */
 const spotifyFetch = async <T>(endpoint: string, options = {}): Promise<T> => {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   
   if (!token) {
     throw new Error("No access token available");
   }
   
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    ...options
-  });
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Unknown API error" }));
-    throw new Error(error.message || `API request failed with status ${response.status}`);
+  try {
+    const response = await axios.get(`${BASE_URL}${endpoint}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      ...options
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching ${endpoint}:`, error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 /**
@@ -42,6 +47,20 @@ const spotifyFetch = async <T>(endpoint: string, options = {}): Promise<T> => {
  */
 export const getCurrentUser = async (): Promise<SpotifyUser> => {
   return spotifyFetch<SpotifyUser>("/me");
+};
+
+/**
+ * Get user profile with name, email and image
+ */
+export const getUserProfile = async (): Promise<UserProfile> => {
+  const userData = await spotifyFetch<SpotifyUser>("/me");
+  
+  return {
+    id: userData.id,
+    name: userData.display_name,
+    email: userData.email || "Email not available",
+    image: userData.images && userData.images.length > 0 ? userData.images[0].url : null
+  };
 };
 
 /**
@@ -65,6 +84,33 @@ export const getTopTracks = async (
 ): Promise<TopItemsResponse<SpotifyTrack>> => {
   return spotifyFetch<TopItemsResponse<SpotifyTrack>>(
     `/me/top/tracks?time_range=${timeRange}&limit=${limit}`
+  );
+};
+
+/**
+ * Get user's playlists
+ */
+export const getUserPlaylists = async (limit: number = 20): Promise<TopItemsResponse<SpotifyPlaylist>> => {
+  return spotifyFetch<TopItemsResponse<SpotifyPlaylist>>(
+    `/me/playlists?limit=${limit}`
+  );
+};
+
+/**
+ * Get user's saved tracks
+ */
+export const getUserSavedTracks = async (limit: number = 20): Promise<TopItemsResponse<{track: SpotifyTrack}>> => {
+  return spotifyFetch<TopItemsResponse<{track: SpotifyTrack}>>(
+    `/me/tracks?limit=${limit}`
+  );
+};
+
+/**
+ * Get available genres for recommendations
+ */
+export const getAvailableGenres = async (): Promise<AvailableGenres> => {
+  return spotifyFetch<AvailableGenres>(
+    `/recommendations/available-genre-seeds`
   );
 };
 
@@ -104,19 +150,23 @@ export const extractTopGenres = (artists: SpotifyArtist[]): string[] => {
 
 /**
  * Get real user music data from Spotify API
- * This will replace the mock function for actual implementation
  */
 export const getRealUserMusicData = async (): Promise<UserMusicData> => {
   try {
     // Get user profile
     const user = await getCurrentUser();
+    const userProfile = await getUserProfile();
     
     // Get top artists and tracks
     const topArtistsResponse = await getTopArtists("medium_term", 50);
     const topTracksResponse = await getTopTracks("medium_term", 50);
     
+    // Get user playlists
+    const userPlaylistsResponse = await getUserPlaylists(10);
+    
     const topArtists = topArtistsResponse.items;
     const topTracks = topTracksResponse.items;
+    const userPlaylists = userPlaylistsResponse.items;
     
     // Extract track IDs for audio features
     const trackIds = topTracks.slice(0, 50).map(track => track.id);
@@ -174,8 +224,10 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
     
     return {
       userId: user.id,
+      userProfile,
       topArtists,
       topTracks,
+      userPlaylists,
       topGenres,
       audioFeatures,
       musicIndex: {
@@ -202,7 +254,44 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
  * Mock function to simulate data retrieval for development/testing
  */
 export const getMockUserMusicData = async () => {
-  // Mock data implementation kept for fallback and testing
+  // Mock user profile
+  const mockUserProfile: UserProfile = {
+    id: "mock_user_1",
+    name: "Demo User",
+    email: "demo@example.com",
+    image: "https://i.scdn.co/image/ab6775700000ee85c05e2c33c8fb44e4728350dc"
+  };
+  
+  // Mock playlists
+  const mockPlaylists: SpotifyPlaylist[] = [
+    {
+      id: "37i9dQZF1DXcBWIGoYBM5M",
+      name: "Today's Top Hits",
+      description: "Spotify's top 50 global chart",
+      images: [{ url: "https://i.scdn.co/image/ab67706f00000003c1d2ccd8c5ab6eb26d3f2010", height: 300, width: 300 }],
+      owner: {
+        id: "spotify",
+        display_name: "Spotify"
+      },
+      tracks: {
+        total: 50
+      }
+    },
+    {
+      id: "37i9dQZF1DWXRqgorJj26U",
+      name: "Rock Classics",
+      description: "Classic rock songs from the 60s to the 90s",
+      images: [{ url: "https://i.scdn.co/image/ab67706f00000003e8e28219724c2423afa4d320", height: 300, width: 300 }],
+      owner: {
+        id: "spotify",
+        display_name: "Spotify"
+      },
+      tracks: {
+        total: 100
+      }
+    }
+  ];
+
   const mockTopArtists: SpotifyArtist[] = [
     {
       id: "4tZwfgrHOc3mvqYlEYSvVi",
@@ -332,8 +421,10 @@ export const getMockUserMusicData = async () => {
   
   const mockData = {
     userId: "mock_user_1",
+    userProfile: mockUserProfile,
     topArtists: mockTopArtists,
     topTracks: mockTopTracks,
+    userPlaylists: mockPlaylists,
     topGenres,
     audioFeatures: mockAudioFeatures,
     musicIndex: {
@@ -349,11 +440,6 @@ export const getMockUserMusicData = async () => {
     },
     lastUpdated: new Date().toISOString()
   };
-  
-  // Add the high precision seed to the mock data
-  if (mockData.musicIndex) {
-    mockData.musicIndex.imageSeed = mockSeed;
-  }
   
   return mockData;
 };

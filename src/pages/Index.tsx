@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import SpotifyMusicImage from "@/components/SpotifyMusicImage";
 import MusicStats from "@/components/MusicStats";
-import { Music, Headphones, Heart } from "lucide-react";
+import { Music, Headphones, Heart, User } from "lucide-react";
 import { initiateSpotifyLogin } from "@/services/spotifyAuth";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -31,13 +33,14 @@ const Index = () => {
           await fetchUserData(true); // Force refresh after login
         } else {
           setIsLoading(false);
-          toast.error("Failed to authenticate with Spotify");
+          toast.error("Falha ao autenticar com o Spotify");
         }
         return;
       }
       
       // Check if user is logged in
-      if (isLoggedIn()) {
+      const loggedIn = await isLoggedIn();
+      if (loggedIn) {
         // Check if we have recent data in local storage
         const storedData = getUserMusicData();
         const dataIsRecent = storedData && 
@@ -63,7 +66,8 @@ const Index = () => {
     try {
       let data: UserMusicData;
       
-      if (isLoggedIn()) {
+      const loggedIn = await isLoggedIn();
+      if (loggedIn) {
         // User is logged in, fetch real data from Spotify API
         data = await getRealUserMusicData();
         console.log("Fetched real user data from Spotify API");
@@ -77,16 +81,16 @@ const Index = () => {
       saveUserMusicData(data);
       setUserData(data);
       
-      toast.success("Successfully retrieved your music data!");
+      toast.success("Dados musicais obtidos com sucesso!");
     } catch (error) {
       console.error("Error fetching user data:", error);
-      toast.error("Failed to load your music data. Please try again.");
+      toast.error("Falha ao carregar seus dados musicais. Tente novamente.");
       
       // Check if we have any data in storage as fallback
       const storedData = getUserMusicData();
       if (storedData) {
         setUserData(storedData);
-        toast.info("Using cached data instead.");
+        toast.info("Usando dados em cache.");
       }
     } finally {
       setIsLoading(false);
@@ -103,15 +107,40 @@ const Index = () => {
             <div className="relative w-16 h-16 animate-spin">
               <Music className="w-full h-full text-spotify" />
             </div>
-            <p className="mt-4 text-lg">Loading your music profile...</p>
+            <p className="mt-4 text-lg">Carregando seu perfil musical...</p>
           </div>
         ) : userData ? (
           <div className="container mx-auto">
+            {userData.userProfile && (
+              <Card className="mb-8 max-w-4xl mx-auto">
+                <CardHeader className="pb-2">
+                  <span className="text-xs font-medium text-spotify bg-spotify/10 rounded-full px-3 py-1 w-fit">Perfil do Usuário</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16">
+                      {userData.userProfile.image ? (
+                        <AvatarImage src={userData.userProfile.image} alt={userData.userProfile.name} />
+                      ) : (
+                        <AvatarFallback>
+                          <User className="h-8 w-8" />
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div>
+                      <h2 className="text-2xl font-bold">{userData.userProfile.name}</h2>
+                      <p className="text-muted-foreground">{userData.userProfile.email}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             <div className="mx-auto max-w-4xl text-center mb-12 animate-fade-in">
-              <span className="text-xs font-medium text-spotify bg-spotify/10 rounded-full px-3 py-1">Your Music Identity</span>
-              <h1 className="mt-3 text-4xl font-bold">Your Unique Music Visualization</h1>
+              <span className="text-xs font-medium text-spotify bg-spotify/10 rounded-full px-3 py-1">Sua Identidade Musical</span>
+              <h1 className="mt-3 text-4xl font-bold">Sua Visualização Musical Única</h1>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                Based on your Spotify listening history, we've created a unique audio fingerprint visualization just for you.
+                Baseado no seu histórico de audição do Spotify, criamos uma visualização única de impressão digital de áudio apenas para você.
               </p>
             </div>
             
@@ -131,9 +160,9 @@ const Index = () => {
                 <Headphones className="h-10 w-10 text-spotify" />
               </div>
               
-              <h1 className="text-3xl font-bold mb-3">Visualize Your Music Taste</h1>
+              <h1 className="text-3xl font-bold mb-3">Visualize Seu Gosto Musical</h1>
               <p className="text-muted-foreground mb-8">
-                Connect your Spotify account to generate a unique visual representation of your music taste and preferences.
+                Conecte sua conta do Spotify para gerar uma representação visual única do seu gosto e preferências musicais.
               </p>
               
               <Button 
@@ -141,7 +170,7 @@ const Index = () => {
                 className="spotify-button w-full"
               >
                 <Music className="mr-2 h-5 w-5" />
-                Connect with Spotify
+                Conectar com Spotify
               </Button>
             </div>
           </div>
@@ -151,16 +180,16 @@ const Index = () => {
       <footer className="py-6 border-t border-gray-200 dark:border-gray-800">
         <div className="container mx-auto px-4 space-y-3">
           <div className="flex items-center justify-center text-sm text-muted-foreground gap-1">
-            <p>Data provided by Spotify</p>
+            <p>Dados fornecidos pelo Spotify</p>
             <img src="https://developer.spotify.com/assets/branding-guidelines/icon3@2x.png" alt="Spotify Logo" className="h-4 ml-1" />
           </div>
           <div className="text-center text-sm text-muted-foreground">
             <p>
-              YourMusicImage | Created with <Heart className="inline-block h-3 w-3 text-red-500 mx-1" fill="currentColor" /> by Melodious Visualizer Team
+              YourMusicImage | Criado com <Heart className="inline-block h-3 w-3 text-red-500 mx-1" fill="currentColor" /> pelo Time Melodious Visualizer
             </p>
           </div>
           <div className="text-center text-xs text-muted-foreground">
-            <p>This website is not affiliated with Spotify. Spotify is a trademark of Spotify AB.</p>
+            <p>Este site não é afiliado ao Spotify. Spotify é uma marca registrada da Spotify AB.</p>
           </div>
         </div>
       </footer>

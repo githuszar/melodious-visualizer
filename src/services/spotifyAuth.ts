@@ -1,6 +1,7 @@
 
 import { SpotifyAuthResponse } from "@/types/spotify";
 import { toast } from "sonner";
+import axios from "axios";
 
 // Spotify API configuration
 const CLIENT_ID = "e983ab76967541819658cb3126d9f3df";
@@ -11,12 +12,15 @@ const SCOPES = [
   "user-read-private",
   "user-read-email",
   "user-top-read",
-  "user-read-recently-played"
+  "user-read-recently-played",
+  "playlist-read-private",
+  "playlist-read-collaborative"
 ];
 
 // Auth storage keys
 const TOKEN_KEY = "spotify_token";
 const TOKEN_EXPIRY_KEY = "spotify_token_expiry";
+const REFRESH_TOKEN_KEY = "spotify_refresh_token";
 
 /**
  * Initiates the Spotify OAuth flow
@@ -70,10 +74,15 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
     // Exchange code for token
     const tokenResponse = await getSpotifyToken(code);
     
-    // Save the token and its expiry time
+    // Save the token, refresh token and its expiry time
     const expiryTime = Date.now() + tokenResponse.expires_in * 1000;
     localStorage.setItem(TOKEN_KEY, tokenResponse.access_token);
     localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+    
+    // Save refresh token if available
+    if (tokenResponse.refresh_token) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refresh_token);
+    }
     
     toast.success("Successfully connected to Spotify!");
     return true;
@@ -98,20 +107,13 @@ const getSpotifyToken = async (code: string): Promise<SpotifyAuthResponse> => {
   body.append('client_secret', CLIENT_SECRET);
   
   try {
-    const response = await fetch(tokenUrl, {
-      method: 'POST',
+    const response = await axios.post(tokenUrl, body.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: body.toString(),
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error_description || 'Failed to exchange token');
-    }
-    
-    return response.json();
+    return response.data;
   } catch (error) {
     console.error('Token exchange error:', error);
     throw error;
@@ -119,9 +121,51 @@ const getSpotifyToken = async (code: string): Promise<SpotifyAuthResponse> => {
 };
 
 /**
- * Get the current access token
+ * Refresh the access token using refresh token
  */
-export const getAccessToken = (): string | null => {
+const refreshAccessToken = async (): Promise<SpotifyAuthResponse> => {
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+  
+  const tokenUrl = 'https://accounts.spotify.com/api/token';
+  
+  const body = new URLSearchParams();
+  body.append('grant_type', 'refresh_token');
+  body.append('refresh_token', refreshToken);
+  body.append('client_id', CLIENT_ID);
+  body.append('client_secret', CLIENT_SECRET);
+  
+  try {
+    const response = await axios.post(tokenUrl, body.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+    
+    // Save the new access token and expiry time
+    const expiryTime = Date.now() + response.data.expires_in * 1000;
+    localStorage.setItem(TOKEN_KEY, response.data.access_token);
+    localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+    
+    // If we got a new refresh token, save it
+    if (response.data.refresh_token) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refresh_token);
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get the current access token, refreshing if necessary
+ */
+export const getAccessToken = async (): Promise<string | null> => {
   const token = localStorage.getItem(TOKEN_KEY);
   const expiryTime = localStorage.getItem(TOKEN_EXPIRY_KEY);
   
@@ -129,12 +173,21 @@ export const getAccessToken = (): string | null => {
     return null;
   }
   
-  // Check if the token has expired
-  if (Date.now() > parseInt(expiryTime)) {
-    // Token expired
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_EXPIRY_KEY);
-    return null;
+  // Check if the token has expired or will expire in the next 5 minutes
+  const isExpiringSoon = Date.now() > (parseInt(expiryTime) - 300000); // 5 minutes buffer
+  
+  if (isExpiringSoon) {
+    try {
+      // Try to refresh the token
+      const refreshResponse = await refreshAccessToken();
+      return refreshResponse.access_token;
+    } catch (error) {
+      console.error("Failed to refresh token:", error);
+      // Clear the token storage on refresh failure
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_EXPIRY_KEY);
+      return null;
+    }
   }
   
   return token;
@@ -143,8 +196,8 @@ export const getAccessToken = (): string | null => {
 /**
  * Check if the user is logged in
  */
-export const isLoggedIn = (): boolean => {
-  return getAccessToken() !== null;
+export const isLoggedIn = async (): Promise<boolean> => {
+  return await getAccessToken() !== null;
 };
 
 /**
@@ -153,5 +206,6 @@ export const isLoggedIn = (): boolean => {
 export const logout = (): void => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
   toast.info("Logged out from Spotify");
 };

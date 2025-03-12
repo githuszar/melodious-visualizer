@@ -10,11 +10,19 @@ export interface SpotifyAuthResponse {
 export interface SpotifyUser {
   display_name: string;
   id: string;
+  email?: string;
   images: { url: string }[];
   followers: { total: number };
   country: string;
   product: string;
   external_urls: { spotify: string };
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
 }
 
 export interface SpotifyArtist {
@@ -40,6 +48,20 @@ export interface SpotifyTrack {
   external_urls: { spotify: string };
 }
 
+export interface SpotifyPlaylist {
+  id: string;
+  name: string;
+  description: string;
+  images: { url: string; height: number; width: number }[];
+  owner: {
+    id: string;
+    display_name: string;
+  };
+  tracks: {
+    total: number;
+  };
+}
+
 export interface TopItemsResponse<T> {
   items: T[];
   total: number;
@@ -63,6 +85,10 @@ export interface AudioFeatures {
   tempo: number;
 }
 
+export interface AvailableGenres {
+  genres: string[];
+}
+
 export interface MusicIndex {
   energy: number;
   valence: number;
@@ -71,13 +97,15 @@ export interface MusicIndex {
   topGenres: string[];
   uniqueScore: number;
   colorPalette: string[];
-  imageSeed?: number; // New field for high-precision image generation
+  imageSeed?: number; // Para geração de imagem de alta precisão
 }
 
 export interface UserMusicData {
   userId: string;
+  userProfile?: UserProfile;
   topArtists: SpotifyArtist[];
   topTracks: SpotifyTrack[];
+  userPlaylists?: SpotifyPlaylist[];
   topGenres: string[];
   audioFeatures: AudioFeatures[];
   musicIndex: MusicIndex;
@@ -86,7 +114,7 @@ export interface UserMusicData {
 
 export type TimeRange = 'short_term' | 'medium_term' | 'long_term';
 
-// Nova interface para o formato de armazenamento do usuário
+// Interface para o formato de armazenamento do usuário
 export interface UserRecord {
   id: string;
   name: string;
@@ -99,7 +127,7 @@ export interface UserRecord {
   acousticness: number;
   music_score: number;
   image_path?: string;
-  high_precision_seed?: number; // Campo para seed de alta precisão
+  high_precision_seed?: number;
 }
 
 // Interface para o banco de dados de usuários

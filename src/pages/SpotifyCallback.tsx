@@ -17,12 +17,12 @@ const SpotifyCallback = () => {
           // Redirect to home page after successful authentication
           setTimeout(() => navigate("/"), 1000);
         } else {
-          setError("Authentication failed. Please try again.");
+          setError("Falha na autenticação. Por favor, tente novamente.");
           setTimeout(() => navigate("/"), 3000);
         }
       } catch (err) {
         console.error("Error handling callback:", err);
-        setError("An unexpected error occurred. Please try again.");
+        setError("Ocorreu um erro inesperado. Por favor, tente novamente.");
         setTimeout(() => navigate("/"), 3000);
       } finally {
         setIsProcessing(false);
@@ -40,15 +40,15 @@ const SpotifyCallback = () => {
         </div>
         
         <h1 className="text-2xl font-bold mb-2">
-          {isProcessing ? "Connecting to Spotify..." : error ? "Connection Failed" : "Connected Successfully!"}
+          {isProcessing ? "Conectando ao Spotify..." : error ? "Falha na Conexão" : "Conectado com Sucesso!"}
         </h1>
         
         <p className="text-muted-foreground mb-4">
           {isProcessing 
-            ? "Please wait while we process your Spotify authentication..." 
+            ? "Por favor, aguarde enquanto processamos sua autenticação com o Spotify..." 
             : error 
               ? error 
-              : "Redirecting you to your personal music visualization..."}
+              : "Redirecionando para sua visualização musical pessoal..."}
         </p>
         
         {isProcessing && (
