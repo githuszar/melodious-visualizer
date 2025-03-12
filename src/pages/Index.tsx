@@ -27,24 +27,40 @@ const Index = () => {
       const code = urlParams.get("code");
       
       if (code) {
-        const success = await handleSpotifyCallback();
-        if (success) {
-          // Limpar dados antigos para garantir que temos dados novos
-          clearStoredData();
-          await fetchUserData(true); // Force refresh after login
-        } else {
+        try {
+          const success = await handleSpotifyCallback();
+          if (success) {
+            // Limpar dados antigos para garantir que temos dados novos
+            await clearStoredData();
+            await fetchUserData(true); // Force refresh after login
+            
+            // Limpar o código da URL para evitar problemas em recarregamentos
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            setIsLoading(false);
+            toast.error("Falha ao autenticar com o Spotify");
+          }
+        } catch (error) {
+          console.error("Erro durante o callback:", error);
           setIsLoading(false);
-          toast.error("Falha ao autenticar com o Spotify");
+          toast.error("Erro na autenticação. Tente novamente.");
         }
         return;
       }
       
       // Check if user is logged in
-      const loggedIn = await isLoggedIn();
-      if (loggedIn) {
-        // Sempre forçar a atualização dos dados a cada login
-        await fetchUserData(true);
-      } else {
+      try {
+        const loggedIn = await isLoggedIn();
+        if (loggedIn) {
+          console.log("Usuário está logado, buscando dados frescos");
+          // Sempre forçar a atualização dos dados a cada login
+          await fetchUserData(true);
+        } else {
+          console.log("Usuário não está logado");
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar login:", error);
         setIsLoading(false);
       }
     };
@@ -59,13 +75,14 @@ const Index = () => {
       
       const loggedIn = await isLoggedIn();
       if (loggedIn) {
+        console.log("Fetchando dados reais do usuário da API do Spotify");
         // User is logged in, fetch real data from Spotify API
         data = await getRealUserMusicData();
-        console.log("Fetched real user data from Spotify API");
+        console.log("Dados obtidos com sucesso da API do Spotify");
       } else {
         // Use mock data for development or if user is not logged in
         data = await getMockUserMusicData();
-        console.log("Using mock data (user not logged in)");
+        console.log("Usando dados de exemplo (usuário não está logado)");
       }
       
       // Save the data to local storage and database
