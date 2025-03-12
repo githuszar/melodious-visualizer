@@ -1,6 +1,6 @@
 
 import { UserMusicData } from "@/types/spotify";
-import { saveUserMusicDataToDatabase, getAllUserRecords, exportDatabaseToJSON, clearDatabase } from "./databaseService";
+import { saveUserMusicDataToDatabase, getAllUserRecords, exportDatabaseToJSON, initializeWithMockDataIfEmpty, clearDatabase } from "./databaseService";
 
 // Local storage keys
 const USER_DATA_KEY = "music_user_data";
@@ -9,14 +9,7 @@ const USER_DATA_KEY = "music_user_data";
  * Inicializar o banco de dados se necessário
  */
 export const initializeDatabase = async (): Promise<void> => {
-  // Não inicializa com dados mockados, apenas prepara o banco
-  try {
-    // Verificar se o banco de dados está acessível
-    await getAllUserRecords();
-    console.log("Banco de dados inicializado com sucesso");
-  } catch (error) {
-    console.error("Erro ao inicializar banco de dados:", error);
-  }
+  await initializeWithMockDataIfEmpty();
 };
 
 /**

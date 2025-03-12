@@ -4,6 +4,7 @@ import { UserMusicData } from "@/types/spotify";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { saveGeneratedImage, downloadImage, shareImage } from "@/services/dataStorage";
+import { getMockMusicImage } from "@/services/imageGenerator";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import PerlinCanvas from "./PerlinCanvas";
@@ -33,18 +34,12 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
   
   useEffect(() => {
     if (userData && userData.musicIndex) {
-      // O componente PerlinCanvas gera a imagem diretamente
-      // Apenas salvamos o dataURL quando ele é gerado
+      // Generate the image
+      const { dataURL } = getMockMusicImage(userData.musicIndex);
+      setImageDataUrl(dataURL);
       
-      // Capturar o dataURL do canvas após renderização
-      const canvas = document.querySelector('canvas');
-      if (canvas) {
-        const dataURL = canvas.toDataURL('image/png');
-        setImageDataUrl(dataURL);
-        
-        // Save to local storage
-        saveGeneratedImage(dataURL);
-      }
+      // Save to local storage
+      saveGeneratedImage(dataURL);
     }
   }, [userData]);
   
