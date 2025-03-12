@@ -1,13 +1,5 @@
-# Estrutura do MVP v1.1: music_insights_mvp
 
-# Dependências (requirements.txt)
-# requests==2.31.0
-# pandas==2.2.0
-# faker==20.1.0
-# pillow==10.2.0
-# numpy==1.26.0  # Para geração de ruído
-# perlin-noise==1.12  # Para gerar texturas suaves
-# matplotlib==3.7.1  # Para plotar imagens
+# Atualizado gerador de imagem Perlin Noise para YourMusicImage
 
 import os
 import random
@@ -18,66 +10,193 @@ from PIL import Image, ImageDraw
 import numpy as np
 from perlin_noise import PerlinNoise
 import matplotlib.pyplot as plt
+import json
+import math
+import time
+from datetime import datetime
 
 # Configuração inicial
 fake = Faker()
+OUTPUT_DIR = "/Users/thiago/Desktop/GitHuszar/YourMusicImge"
 
-# Simulação de dados de usuários
-num_users = 100
+# Garantir que o diretório exista
+if not os.path.exists(OUTPUT_DIR):
+    os.makedirs(OUTPUT_DIR)
+
+# Simulação de dados de usuários com alta precisão
+num_users = 101  # 100 últimos usuários + o atual
 users = []
-for _ in range(num_users):
+
+for i in range(num_users):
+    # Gerar seed de alta precisão
+    timestamp = time.time() + i
+    random_seed = int(timestamp * 1000000) % 10000000000
+    
+    # Garantir valores únicos para cada usuário
+    unique_id = fake.uuid4()
+    energy = random.uniform(0.3, 0.9)
+    valence = random.uniform(0.2, 0.95)
+    danceability = random.uniform(0.4, 0.85)
+    acousticness = random.uniform(0.1, 0.8)
+    
+    # Criar um score único com alta precisão usando funções trigonométricas
+    unique_factors = [
+        energy * 17.31,
+        valence * 19.47,
+        danceability * 23.89,
+        acousticness * 29.71,
+        hash(unique_id) % 100 / 100 * 37.43,
+        math.sin(random_seed) * 41.59,
+        math.cos(random_seed / 2) * 43.67
+    ]
+    
+    music_score = abs(sum(unique_factors) % 100)
+    
+    # Adicionar ao array de usuários
     users.append({
-        "id": fake.uuid4(),
+        "id": unique_id,
         "name": fake.name(),
+        "timestamp": timestamp,
         "top_artist": random.choice(["Drake", "Taylor Swift", "Kanye West", "Billie Eilish", "The Weeknd"]),
         "top_genre": random.choice(["Pop", "Hip-Hop", "Rock", "Electronic", "R&B"]),
-        "energy": random.uniform(0.3, 0.9),
-        "music_score": random.randint(10, 100)  # Índice musical
+        "energy": energy,
+        "valence": valence,
+        "danceability": danceability,
+        "acousticness": acousticness,
+        "music_score": music_score,
+        "high_precision_seed": random_seed
     })
 
 # Transformando em DataFrame
 users_df = pd.DataFrame(users)
 
-# Manter apenas as últimas 30 entradas
-users_df = users_df.tail(30)
+# Ordenar por timestamp para garantir que temos os últimos 100 usuários
+users_df = users_df.sort_values('timestamp', ascending=False).head(101)
 
-# Criar diretório de visualizações se não existir
-if not os.path.exists("visualization"): os.makedirs("visualization")
+# Salvar os dados em JSON para referência
+users_df.to_json(f"{OUTPUT_DIR}/users_data.json", orient="records", indent=2)
 
-# Gerar imagem abstrata usando Perlin Noise
-def generate_perlin_image(user_id, score):
+# Gerar imagem abstrata usando Perlin Noise com alta precisão
+def generate_perlin_image(user_id, user_data, output_dir):
     width, height = 500, 500
     img = Image.new("RGB", (width, height), "black")
     draw = ImageDraw.Draw(img)
     
-    # Garantir que a seed seja um tipo suportado
-    seed_value = int(score) if isinstance(score, (int, float)) else hash(str(score)) % (2**32)
-    noise = PerlinNoise(octaves=3, seed=seed_value)
+    # Usar a seed de alta precisão
+    seed_value = user_data["high_precision_seed"]
+    energy = user_data["energy"]
+    valence = user_data["valence"]
+    danceability = user_data["danceability"]
+    acousticness = user_data["acousticness"]
     
+    # Criar múltiplas camadas de ruído com diferentes oitavas para mais detalhe
+    noise1 = PerlinNoise(octaves=3, seed=int(seed_value % 1000000000))
+    noise2 = PerlinNoise(octaves=6, seed=int((seed_value + 1) % 1000000000))
+    noise3 = PerlinNoise(octaves=12, seed=int((seed_value + 2) % 1000000000))
+    
+    # Gerar uma paleta de cores baseada nos atributos musicais
+    color_palette = [
+        (int(valence * 255), int(energy * 200), int(255 - acousticness * 200)),
+        (int(energy * 255), int(danceability * 200), int(acousticness * 255)),
+        (int(255 - energy * 100), int(valence * 255), int(danceability * 200)),
+    ]
+    
+    # Aplicar ruído Perlin multicamada com cores baseadas no perfil musical
     for x in range(width):
         for y in range(height):
-            value = int((noise([x/width, y/height]) + 1) * 127.5)  # Normaliza o valor entre 0-255
-            draw.point((x, y), (value, value//2, 255 - value))
+            nx, ny = x/width, y/height
+            
+            # Combinar múltiplas oitavas de ruído
+            noise_val = (
+                1.0 * noise1([nx, ny]) +
+                0.5 * noise2([nx * 2, ny * 2]) +
+                0.25 * noise3([nx * 4, ny * 4])
+            )
+            
+            # Normalizar o valor
+            noise_val = (noise_val + 1) / 2
+            
+            # Escolher cor com base no valor do ruído
+            if noise_val < 0.33:
+                color_idx = 0
+            elif noise_val < 0.66:
+                color_idx = 1
+            else:
+                color_idx = 2
+                
+            # Ajustar intensidade de cor com base no valor do ruído
+            color_intensity = noise_val ** valence if valence > 0 else noise_val
+            r, g, b = color_palette[color_idx]
+            r = int(r * color_intensity)
+            g = int(g * color_intensity)
+            b = int(b * color_intensity)
+            
+            draw.point((x, y), (r, g, b))
     
-    img_path = f"visualization/{user_id}.png"
+    # Adicionar detalhes baseados no valor de energia
+    if energy > 0.6:
+        for i in range(5):
+            cx = int(width * (0.3 + (seed_value + i * 100) % 1000 / 1000 * 0.4))
+            cy = int(height * (0.3 + (seed_value + i * 200) % 1000 / 1000 * 0.4))
+            radius = int(50 + energy * 50)
+            
+            # Criar um gradiente radial à mão
+            for rx in range(cx - radius, cx + radius):
+                for ry in range(cy - radius, cy + radius):
+                    if 0 <= rx < width and 0 <= ry < height:
+                        # Calcular distância do centro
+                        dist = math.sqrt((rx - cx) ** 2 + (ry - cy) ** 2)
+                        if dist < radius:
+                            # Criar efeito gradiente
+                            factor = 1 - (dist / radius)
+                            r, g, b = img.getpixel((rx, ry))
+                            blend_color = color_palette[i % 3]
+                            new_r = int(r * (1 - factor) + blend_color[0] * factor)
+                            new_g = int(g * (1 - factor) + blend_color[1] * factor)
+                            new_b = int(b * (1 - factor) + blend_color[2] * factor)
+                            draw.point((rx, ry), (new_r, new_g, new_b))
+    
+    # Guardar dados do usuário como metadados na imagem
+    metadata = {
+        "user_id": user_id,
+        "music_score": user_data["music_score"],
+        "energy": energy,
+        "valence": valence,
+        "danceability": danceability,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    # Salvar a imagem com nome baseado no ID do usuário
+    img_path = f"{output_dir}/{user_id}.png"
     img.save(img_path)
+    
+    # Salvar metadados separadamente
+    with open(f"{output_dir}/{user_id}_metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+    
     return img_path
 
-# Gerar uma única imagem por requisição
-def generate_and_plot_image():
-    user = users_df.sample(1).iloc[0]  # Seleciona um usuário aleatório
-    img_path = generate_perlin_image(user.id, user.music_score)
-    img = Image.open(img_path)
-    
-    plt.figure(figsize=(5,5))
-    plt.imshow(img)
-    plt.axis("off")
-    plt.title(f"User: {user.name}\nScore: {user.music_score}")
-    plt.show()
-    
-    print(f"Imagem gerada e exibida para {user.name}")
+# Gerar uma imagem para cada usuário
+for _, user in users_df.iterrows():
+    img_path = generate_perlin_image(user["id"], user, OUTPUT_DIR)
+    print(f"Imagem gerada para {user['name']} em {img_path}")
 
-# Gerar e plotar uma imagem
-generate_and_plot_image()
+# Gerar e plotar uma visualização para o usuário atual (último usuário)
+current_user = users_df.iloc[0]
+img_path = f"{OUTPUT_DIR}/{current_user['id']}.png"
+img = Image.open(img_path)
 
-print("MVP v1.1 atualizado com geração e exibição de imagens Perlin Noise!")
+plt.figure(figsize=(10, 10))
+plt.imshow(img)
+plt.axis("off")
+plt.title(f"Usuário: {current_user['name']}\nScore Musical: {current_user['music_score']:.2f}")
+plt.tight_layout()
+
+# Salvar a visualização
+plt.savefig(f"{OUTPUT_DIR}/current_user_visualization.png", dpi=300, bbox_inches="tight")
+plt.show()
+
+print(f"\nImagens geradas e salvas em: {OUTPUT_DIR}")
+print(f"Total de usuários processados: {len(users_df)}")
+print(f"Usuário atual: {current_user['name']} (ID: {current_user['id']})")
+print(f"Score musical: {current_user['music_score']:.2f}")

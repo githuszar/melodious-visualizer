@@ -71,6 +71,7 @@ export interface MusicIndex {
   topGenres: string[];
   uniqueScore: number;
   colorPalette: string[];
+  imageSeed?: number; // New field for high-precision image generation
 }
 
 export interface UserMusicData {

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { UserMusicData } from "@/types/spotify";
 import { handleSpotifyCallback, isLoggedIn } from "@/services/spotifyAuth";
-import { getMockUserMusicData } from "@/services/spotifyApi";
+import { getMockUserMusicData, getRealUserMusicData } from "@/services/spotifyApi";
 import { getUserMusicData, saveUserMusicData } from "@/services/dataStorage";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
@@ -25,24 +25,28 @@ const Index = () => {
       if (code) {
         const success = await handleSpotifyCallback();
         if (success) {
-          fetchUserData();
+          await fetchUserData(true); // Force refresh after login
         } else {
           setIsLoading(false);
+          toast.error("Failed to authenticate with Spotify");
         }
-        return;
-      }
-      
-      // Check if we have data in local storage
-      const storedData = getUserMusicData();
-      if (storedData) {
-        setUserData(storedData);
-        setIsLoading(false);
         return;
       }
       
       // Check if user is logged in
       if (isLoggedIn()) {
-        fetchUserData();
+        // Check if we have recent data in local storage
+        const storedData = getUserMusicData();
+        const dataIsRecent = storedData && 
+                            new Date().getTime() - new Date(storedData.lastUpdated).getTime() < 3600000; // 1 hour
+        
+        if (storedData && dataIsRecent) {
+          setUserData(storedData);
+          setIsLoading(false);
+        } else {
+          // Data is old or doesn't exist, fetch new data
+          await fetchUserData(true);
+        }
       } else {
         setIsLoading(false);
       }
@@ -51,12 +55,20 @@ const Index = () => {
     initializeApp();
   }, []);
   
-  const fetchUserData = async () => {
+  const fetchUserData = async (forceRefresh = false) => {
     setIsLoading(true);
     try {
-      // In a real app, we would fetch the actual data from Spotify API
-      // For the MVP demo, we use mock data
-      const data = await getMockUserMusicData();
+      let data: UserMusicData;
+      
+      if (isLoggedIn()) {
+        // User is logged in, fetch real data from Spotify API
+        data = await getRealUserMusicData();
+        console.log("Fetched real user data from Spotify API");
+      } else {
+        // Use mock data for development or if user is not logged in
+        data = await getMockUserMusicData();
+        console.log("Using mock data (user not logged in)");
+      }
       
       // Save the data to local storage
       saveUserMusicData(data);
@@ -66,6 +78,13 @@ const Index = () => {
     } catch (error) {
       console.error("Error fetching user data:", error);
       toast.error("Failed to load your music data. Please try again.");
+      
+      // Check if we have any data in storage as fallback
+      const storedData = getUserMusicData();
+      if (storedData) {
+        setUserData(storedData);
+        toast.info("Using cached data instead.");
+      }
     } finally {
       setIsLoading(false);
     }

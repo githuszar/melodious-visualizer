@@ -1,11 +1,11 @@
-
 import { 
   SpotifyUser, 
   SpotifyArtist, 
   SpotifyTrack, 
   TopItemsResponse, 
   AudioFeatures,
-  TimeRange
+  TimeRange,
+  UserMusicData
 } from "@/types/spotify";
 import { getAccessToken } from "./spotifyAuth";
 
@@ -30,8 +30,8 @@ const spotifyFetch = async <T>(endpoint: string, options = {}): Promise<T> => {
   });
   
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "API request failed");
+    const error = await response.json().catch(() => ({ message: "Unknown API error" }));
+    throw new Error(error.message || `API request failed with status ${response.status}`);
   }
   
   return response.json();
@@ -103,11 +103,106 @@ export const extractTopGenres = (artists: SpotifyArtist[]): string[] => {
 };
 
 /**
- * Mock function to simulate data retrieval since we cannot actually make Spotify API calls
- * In a real app, this would be removed and the actual API functions above would be used
+ * Get real user music data from Spotify API
+ * This will replace the mock function for actual implementation
+ */
+export const getRealUserMusicData = async (): Promise<UserMusicData> => {
+  try {
+    // Get user profile
+    const user = await getCurrentUser();
+    
+    // Get top artists and tracks
+    const topArtistsResponse = await getTopArtists("medium_term", 50);
+    const topTracksResponse = await getTopTracks("medium_term", 50);
+    
+    const topArtists = topArtistsResponse.items;
+    const topTracks = topTracksResponse.items;
+    
+    // Extract track IDs for audio features
+    const trackIds = topTracks.slice(0, 50).map(track => track.id);
+    
+    // Get audio features for tracks
+    const audioFeaturesResponse = await getAudioFeatures(trackIds);
+    const audioFeatures = audioFeaturesResponse.audio_features.filter(Boolean);
+    
+    // Extract top genres
+    const topGenres = extractTopGenres(topArtists);
+    
+    // Calculate music index based on audio features
+    const avgEnergy = audioFeatures.reduce((sum, feat) => sum + feat.energy, 0) / audioFeatures.length || 0.5;
+    const avgValence = audioFeatures.reduce((sum, feat) => sum + feat.valence, 0) / audioFeatures.length || 0.5;
+    const avgDanceability = audioFeatures.reduce((sum, feat) => sum + feat.danceability, 0) / audioFeatures.length || 0.5;
+    const avgAcousticness = audioFeatures.reduce((sum, feat) => sum + feat.acousticness, 0) / audioFeatures.length || 0.3;
+    const avgTempos = audioFeatures.reduce((sum, feat) => sum + feat.tempo, 0) / audioFeatures.length || 120;
+    
+    // Generate color palette based on audio features with higher precision
+    const colorPalette = [
+      `hsl(${Math.floor(360 * avgValence)}, 70%, 60%)`,
+      `hsl(${Math.floor(200 * avgEnergy)}, 80%, 50%)`,
+      `hsl(${Math.floor(100 * avgDanceability)}, 60%, 45%)`,
+      `hsl(${Math.floor(290 * avgAcousticness)}, 50%, 40%)`
+    ];
+    
+    // Create a much more unique score with high precision
+    // Using multiple features and prime numbers to increase uniqueness
+    const uniquenessFactors = [
+      avgEnergy * 17.31,
+      avgValence * 19.47,
+      avgDanceability * 23.89,
+      avgAcousticness * 29.71,
+      (avgTempos / 200) * 31.37,
+      (user.id.charCodeAt(0) % 100) / 100 * 37.43,
+      (Date.now() % 10000) / 10000 * 41.59
+    ];
+    
+    // Create a high-precision unique score (0-100)
+    const uniqueScore = Math.floor(
+      uniquenessFactors.reduce((acc, factor) => (acc + factor) % 100, 0)
+    );
+    
+    // Use more data points for unique image generation
+    const highPrecisionSeed = topArtists.slice(0, 5).reduce((seed, artist, index) => {
+      return seed + (artist.popularity * Math.PI * (index + 1)) + 
+             (artist.name.charCodeAt(0) * Math.E);
+    }, 0) + topTracks.slice(0, 5).reduce((seed, track, index) => {
+      return seed + (track.popularity * Math.sqrt(2) * (index + 1)) + 
+             (track.name.charCodeAt(0) * Math.log(10));
+    }, 0);
+    
+    // Normalize to a stable range but keep high precision
+    const normalizedSeed = Math.abs(Math.sin(highPrecisionSeed)) * 9999999999;
+    
+    return {
+      userId: user.id,
+      topArtists,
+      topTracks,
+      topGenres,
+      audioFeatures,
+      musicIndex: {
+        energy: avgEnergy,
+        valence: avgValence,
+        danceability: avgDanceability,
+        acousticness: avgAcousticness,
+        topGenres,
+        uniqueScore,
+        colorPalette,
+        // Add the high precision seed for image generation
+        imageSeed: normalizedSeed
+      },
+      lastUpdated: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error("Error fetching real user data:", error);
+    // Fallback to mock data if API fails
+    return getMockUserMusicData();
+  }
+};
+
+/**
+ * Mock function to simulate data retrieval for development/testing
  */
 export const getMockUserMusicData = async () => {
-  // Mock top artists
+  // Mock data implementation kept for fallback and testing
   const mockTopArtists: SpotifyArtist[] = [
     {
       id: "4tZwfgrHOc3mvqYlEYSvVi",
@@ -135,7 +230,6 @@ export const getMockUserMusicData = async () => {
     }
   ];
   
-  // Mock top tracks
   const mockTopTracks: SpotifyTrack[] = [
     {
       id: "3Iyq9p8UFGJIHULFELtR1g",
@@ -179,7 +273,6 @@ export const getMockUserMusicData = async () => {
     }
   ];
   
-  // Mock audio features
   const mockAudioFeatures: AudioFeatures[] = [
     {
       danceability: 0.795,
@@ -202,7 +295,7 @@ export const getMockUserMusicData = async () => {
       mode: 0,
       speechiness: 0.225,
       acousticness: 0.0173,
-      instrumentalness: 0.0,
+      instrumentalness: 0,
       liveness: 0.121,
       valence: 0.602,
       tempo: 77.169
@@ -234,7 +327,10 @@ export const getMockUserMusicData = async () => {
     (avgAcousticness * 25)
   );
   
-  return {
+  // Add a unique high-precision seed for mock data
+  const mockSeed = Math.abs(Math.sin(Date.now() * Math.PI)) * 9999999999;
+  
+  const mockData = {
     userId: "mock_user_1",
     topArtists: mockTopArtists,
     topTracks: mockTopTracks,
@@ -247,8 +343,17 @@ export const getMockUserMusicData = async () => {
       acousticness: avgAcousticness,
       topGenres,
       uniqueScore,
-      colorPalette
+      colorPalette,
+      // Add the high precision seed for image generation
+      imageSeed: mockSeed
     },
     lastUpdated: new Date().toISOString()
   };
+  
+  // Add the high precision seed to the mock data
+  if (mockData.musicIndex) {
+    mockData.musicIndex.imageSeed = mockSeed;
+  }
+  
+  return mockData;
 };
