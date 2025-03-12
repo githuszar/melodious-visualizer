@@ -4,6 +4,7 @@ import { initiateSpotifyLogin, isLoggedIn, logout } from "@/services/spotifyAuth
 import { Music } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
@@ -33,9 +34,12 @@ const Navbar = () => {
     initiateSpotifyLogin();
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setLoggedIn(false);
+    toast.success("Você foi desconectado. Clique em 'Connect Spotify' para iniciar uma nova sessão.");
+    // Forçar a atualização da página para garantir limpeza total do estado
+    window.location.reload();
   };
 
   return (

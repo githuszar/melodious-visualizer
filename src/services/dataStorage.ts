@@ -17,18 +17,27 @@ export const initializeDatabase = async (): Promise<void> => {
  */
 export const clearStoredData = async (): Promise<void> => {
   try {
-    // Remover todos os dados relacionados ao usuário do localStorage
-    localStorage.removeItem(USER_DATA_KEY);
-    localStorage.removeItem("music_image");
-    localStorage.removeItem("spotify_token");
-    localStorage.removeItem("spotify_token_expiry");
-    localStorage.removeItem("spotify_refresh_token");
+    // Limpar todos os dados relacionados ao usuário e autenticação do localStorage
+    const keysToRemove = [
+      USER_DATA_KEY,
+      "music_image",
+      "spotify_token",
+      "spotify_token_expiry",
+      "spotify_refresh_token",
+      "spotify_auth_state"
+    ];
+    
+    // Remover cada chave individualmente
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Limpar sessionStorage também para garantir
+    sessionStorage.clear();
     
     // Limpar o banco de dados para garantir que dados frescos serão utilizados
     const cleared = await clearDatabase();
     
     if (cleared) {
-      console.log("Dados de usuário limpos com sucesso do localStorage e banco de dados");
+      console.log("Dados de usuário limpos com sucesso do localStorage, sessionStorage e banco de dados");
     } else {
       console.error("Falha ao limpar o banco de dados");
     }

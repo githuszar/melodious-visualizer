@@ -1,3 +1,4 @@
+
 import { SpotifyAuthResponse } from "@/types/spotify";
 import { toast } from "sonner";
 import axios from "axios";
@@ -26,6 +27,11 @@ const REFRESH_TOKEN_KEY = "spotify_refresh_token";
  * Initiates the Spotify OAuth flow
  */
 export const initiateSpotifyLogin = () => {
+  // Limpar quaisquer tokens existentes para garantir nova autenticação
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRY_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  
   // Generate a random state value for CSRF protection
   const state = Math.random().toString(36).substring(2, 15);
   localStorage.setItem("spotify_auth_state", state);
@@ -37,6 +43,8 @@ export const initiateSpotifyLogin = () => {
   authUrl.searchParams.append("redirect_uri", REDIRECT_URI);
   authUrl.searchParams.append("scope", SCOPES.join(" "));
   authUrl.searchParams.append("state", state);
+  // Adicionando parâmetro show_dialog para forçar tela de login do Spotify
+  authUrl.searchParams.append("show_dialog", "true");
 
   // Redirect to Spotify auth page
   window.location.href = authUrl.toString();
@@ -184,8 +192,7 @@ export const getAccessToken = async (): Promise<string | null> => {
     } catch (error) {
       console.error("Failed to refresh token:", error);
       // Clear the token storage on refresh failure
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(TOKEN_EXPIRY_KEY);
+      await clearStoredData(); // Limpeza completa em caso de falha
       return null;
     }
   }
@@ -205,15 +212,15 @@ export const isLoggedIn = async (): Promise<boolean> => {
  */
 export const logout = async (): Promise<void> => {
   try {
-    // Limpar tokens de autenticação
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_EXPIRY_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    
-    // Limpar todos os outros dados armazenados
+    // Limpar todos os dados armazenados (incluindo tokens)
     await clearStoredData();
     
-    toast.info("Desconectado do Spotify e dados limpos");
+    // Forçar reload da página para garantir reinicialização completa do estado
+    toast.success("Desconectado do Spotify com sucesso");
+    
+    // Opcionalmente, podemos forçar um reload da página para garantir
+    // que todos os estados do React sejam reinicializados
+    // setTimeout(() => window.location.reload(), 500);
   } catch (error) {
     console.error("Erro ao fazer logout:", error);
     toast.error("Erro ao desconectar. Alguns dados podem não ter sido limpos.");
