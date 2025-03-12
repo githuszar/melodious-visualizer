@@ -9,8 +9,23 @@ const Navbar = () => {
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   
   useEffect(() => {
+    // Verificar status de login quando o componente é montado
     setLoggedIn(isLoggedIn());
+    
+    // Atualizar status de login quando o localStorage mudar
+    const handleStorageChange = () => {
+      setLoggedIn(isLoggedIn());
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
+
+  const handleLogin = () => {
+    initiateSpotifyLogin();
+  };
 
   const handleLogout = () => {
     logout();
@@ -48,7 +63,7 @@ const Navbar = () => {
             </Button>
           ) : (
             <Button 
-              onClick={initiateSpotifyLogin}
+              onClick={handleLogin}
               className="spotify-button"
             >
               Connect Spotify

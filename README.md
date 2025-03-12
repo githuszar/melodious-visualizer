@@ -64,6 +64,20 @@ Para publicar no GitHub Pages ou outro serviço de hospedagem estática:
 2. Configure seu serviço de hospedagem para lidar com rotas SPA (Single Page Application)
 3. Certifique-se de que todas as requisições para rotas inexistentes sejam redirecionadas para o index.html
 
+## Configurações para diferentes plataformas de hospedagem
+
+### Netlify
+- Já configurado com `netlify.toml` e `public/_redirects`
+- Basta conectar seu repositório GitHub ao Netlify
+
+### Vercel
+- Já configurado com `vercel.json`
+- Basta conectar seu repositório GitHub ao Vercel
+
+### GitHub Pages
+- Configure o GitHub Actions para construir e implantar seu site
+- Adicione um arquivo `404.html` para redirecionar para `index.html`
+
 ## Próximos passos
 
 - Implementar integração com Firebase para armazenamento persistente
