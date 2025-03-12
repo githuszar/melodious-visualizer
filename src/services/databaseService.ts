@@ -1,4 +1,3 @@
-
 import { UserDatabase, UserRecord, UserMusicData } from "@/types/spotify";
 import { toast } from "sonner";
 
@@ -319,5 +318,38 @@ export const initializeWithMockDataIfEmpty = async (): Promise<void> => {
     }
   } catch (error) {
     console.error("Error initializing with mock data:", error);
+  }
+};
+
+/**
+ * Limpar todo o banco de dados
+ */
+export const clearDatabase = async (): Promise<boolean> => {
+  try {
+    const db = await initializeDB();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_NAME], "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+      
+      const clearRequest = store.clear();
+      
+      clearRequest.onsuccess = () => {
+        console.log("Database cleared successfully");
+        resolve(true);
+      };
+      
+      clearRequest.onerror = (event) => {
+        console.error("Error clearing database:", event);
+        reject(false);
+      };
+      
+      transaction.oncomplete = () => {
+        db.close();
+      };
+    });
+  } catch (error) {
+    console.error("Error clearing database:", error);
+    return false;
   }
 };

@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from "react";
 import { UserMusicData } from "@/types/spotify";
 import { handleSpotifyCallback, isLoggedIn } from "@/services/spotifyAuth";
 import { getMockUserMusicData, getRealUserMusicData } from "@/services/spotifyApi";
-import { getUserMusicData, saveUserMusicData, initializeDatabase } from "@/services/dataStorage";
+import { getUserMusicData, saveUserMusicData, initializeDatabase, clearStoredData } from "@/services/dataStorage";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import SpotifyMusicImage from "@/components/SpotifyMusicImage";
@@ -30,6 +29,8 @@ const Index = () => {
       if (code) {
         const success = await handleSpotifyCallback();
         if (success) {
+          // Limpar dados antigos para garantir que temos dados novos
+          clearStoredData();
           await fetchUserData(true); // Force refresh after login
         } else {
           setIsLoading(false);
@@ -41,18 +42,8 @@ const Index = () => {
       // Check if user is logged in
       const loggedIn = await isLoggedIn();
       if (loggedIn) {
-        // Check if we have recent data in local storage
-        const storedData = getUserMusicData();
-        const dataIsRecent = storedData && 
-                            new Date().getTime() - new Date(storedData.lastUpdated).getTime() < 3600000; // 1 hour
-        
-        if (storedData && dataIsRecent) {
-          setUserData(storedData);
-          setIsLoading(false);
-        } else {
-          // Data is old or doesn't exist, fetch new data
-          await fetchUserData(true);
-        }
+        // Sempre forçar a atualização dos dados a cada login
+        await fetchUserData(true);
       } else {
         setIsLoading(false);
       }

@@ -1,6 +1,5 @@
-
 import { UserMusicData } from "@/types/spotify";
-import { saveUserMusicDataToDatabase, getAllUserRecords, exportDatabaseToJSON, initializeWithMockDataIfEmpty } from "./databaseService";
+import { saveUserMusicDataToDatabase, getAllUserRecords, exportDatabaseToJSON, initializeWithMockDataIfEmpty, clearDatabase } from "./databaseService";
 
 // Local storage keys
 const USER_DATA_KEY = "music_user_data";
@@ -10,6 +9,17 @@ const USER_DATA_KEY = "music_user_data";
  */
 export const initializeDatabase = async (): Promise<void> => {
   await initializeWithMockDataIfEmpty();
+};
+
+/**
+ * Limpar todos os dados armazenados, incluindo o banco de dados
+ */
+export const clearStoredData = async (): Promise<void> => {
+  localStorage.removeItem(USER_DATA_KEY);
+  localStorage.removeItem("music_image");
+  // Limpar o banco de dados para garantir que dados frescos serão utilizados
+  await clearDatabase();
+  console.log("Dados de usuário limpos do localStorage e banco de dados");
 };
 
 /**
@@ -51,14 +61,6 @@ export const saveGeneratedImage = (dataUrl: string): void => {
  */
 export const getGeneratedImage = (): string | null => {
   return localStorage.getItem("music_image");
-};
-
-/**
- * Clear all stored data
- */
-export const clearStoredData = (): void => {
-  localStorage.removeItem(USER_DATA_KEY);
-  localStorage.removeItem("music_image");
 };
 
 /**
