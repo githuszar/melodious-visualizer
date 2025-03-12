@@ -3,7 +3,21 @@
   publish = "dist"
   command = "npm run build"
 
+# Redirecionamento principal para SPA
 [[redirects]]
   from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Redirecionamento para API Spotify (se necessário)
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.spotify.com/:splat"
+  status = 200
+  force = true
+
+# Garantir que o callback do Spotify seja tratado corretamente
+[[redirects]]
+  from = "/callback"
   to = "/index.html"
   status = 200
