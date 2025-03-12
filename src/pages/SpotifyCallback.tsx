@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { handleSpotifyCallback } from "@/services/spotifyAuth";
 import { Music } from "lucide-react";
+import { toast } from "sonner";
 
 const SpotifyCallback = () => {
   const navigate = useNavigate();
@@ -12,16 +13,21 @@ const SpotifyCallback = () => {
   useEffect(() => {
     const processCallback = async () => {
       try {
+        console.log("Processando callback do Spotify...");
         const success = await handleSpotifyCallback();
+        
         if (success) {
-          // Redirect to home page after successful authentication
-          setTimeout(() => navigate("/"), 1000);
+          console.log("Autenticação bem-sucedida, redirecionando para home...");
+          toast.success("Autenticação com Spotify concluída!");
+          // Adicionar pequeno delay antes do redirecionamento para garantir que os dados sejam salvos
+          setTimeout(() => navigate("/"), 1500);
         } else {
+          console.error("Falha na autenticação do Spotify");
           setError("Falha na autenticação. Por favor, tente novamente.");
           setTimeout(() => navigate("/"), 3000);
         }
       } catch (err) {
-        console.error("Error handling callback:", err);
+        console.error("Erro ao processar callback:", err);
         setError("Ocorreu um erro inesperado. Por favor, tente novamente.");
         setTimeout(() => navigate("/"), 3000);
       } finally {

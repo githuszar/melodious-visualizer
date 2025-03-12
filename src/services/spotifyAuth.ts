@@ -183,7 +183,13 @@ export const getAccessToken = async (): Promise<string | null> => {
   const token = localStorage.getItem(TOKEN_KEY);
   const expiryTime = localStorage.getItem(TOKEN_EXPIRY_KEY);
   
+  console.log("Verificando token:", { 
+    token: token ? "existe" : "não existe", 
+    expiryTime: expiryTime ? "existe" : "não existe" 
+  });
+  
   if (!token || !expiryTime) {
+    console.log("Token ou tempo de expiração ausente");
     return null;
   }
   
@@ -192,6 +198,7 @@ export const getAccessToken = async (): Promise<string | null> => {
   
   if (isExpiringSoon) {
     try {
+      console.log("Token expirando em breve, tentando atualizar...");
       // Try to refresh the token
       const refreshResponse = await refreshAccessToken();
       return refreshResponse.access_token;
@@ -203,6 +210,7 @@ export const getAccessToken = async (): Promise<string | null> => {
     }
   }
   
+  console.log("Token válido encontrado");
   return token;
 };
 
@@ -210,7 +218,15 @@ export const getAccessToken = async (): Promise<string | null> => {
  * Check if the user is logged in
  */
 export const isLoggedIn = async (): Promise<boolean> => {
-  return await getAccessToken() !== null;
+  try {
+    const token = await getAccessToken();
+    const isValid = token !== null;
+    console.log("Status de login verificado:", isValid);
+    return isValid;
+  } catch (error) {
+    console.error("Erro ao verificar status de login:", error);
+    return false;
+  }
 };
 
 /**
@@ -218,6 +234,7 @@ export const isLoggedIn = async (): Promise<boolean> => {
  */
 export const logout = async (): Promise<void> => {
   try {
+    console.log("Iniciando processo de logout");
     // Limpar todos os dados armazenados (incluindo tokens)
     await clearStoredData();
     

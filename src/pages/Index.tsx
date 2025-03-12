@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { UserMusicData } from "@/types/spotify";
-import { handleSpotifyCallback, isLoggedIn } from "@/services/spotifyAuth";
+import { isLoggedIn } from "@/services/spotifyAuth";
 import { getRealUserMusicData } from "@/services/spotifyApi";
 import { getUserMusicData, saveUserMusicData, initializeDatabase, clearStoredData } from "@/services/dataStorage";
 import { Button } from "@/components/ui/button";
@@ -17,44 +16,22 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 const Index = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userData, setUserData] = useState<UserMusicData | null>(null);
+  const [loginStatus, setLoginStatus] = useState<boolean>(false);
   
   useEffect(() => {
     const initializeApp = async () => {
+      console.log("Inicializando aplicação...");
       // Inicializar o banco de dados
       await initializeDatabase();
-      
-      // Check if this is a callback from Spotify auth
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
-      
-      if (code) {
-        try {
-          const success = await handleSpotifyCallback();
-          if (success) {
-            console.log("Autenticação com Spotify bem-sucedida, limpando todos os dados anteriores");
-            // Limpar todos os dados armazenados antes de buscar novos
-            await clearStoredData();
-            await fetchUserData(true); // Force refresh after login
-            
-            // Limpar o código da URL para evitar problemas em recarregamentos
-            window.history.replaceState({}, document.title, window.location.pathname);
-          } else {
-            setIsLoading(false);
-            toast.error("Falha ao autenticar com o Spotify");
-          }
-        } catch (error) {
-          console.error("Erro durante o callback:", error);
-          setIsLoading(false);
-          toast.error("Erro na autenticação. Tente novamente.");
-        }
-        return;
-      }
       
       // Check if user is logged in
       try {
         const loggedIn = await isLoggedIn();
+        console.log("Status de login:", loggedIn);
+        setLoginStatus(loggedIn);
+        
         if (loggedIn) {
-          console.log("Usuário está logado, verificando dados frescos");
+          console.log("Usuário está logado, verificando dados");
           
           // Verificar timestamp do último login para decidir se precisa atualizar dados
           const lastLoginTime = localStorage.getItem("spotify_last_login_time");
@@ -64,7 +41,6 @@ const Index = () => {
           // Se não há registro de último login ou se passou mais de 1 hora, busca dados novos
           if (!lastLoginTime || (currentTime - parseInt(lastLoginTime)) > ONE_HOUR) {
             console.log("Buscando dados frescos (último login expirado ou inexistente)");
-            await clearStoredData();
             await fetchUserData(true);
           } else {
             // Tentar usar dados em cache primeiro, mas se falhar, buscar novos
@@ -93,11 +69,28 @@ const Index = () => {
     
     initializeApp();
     
-    // Limpar o estado quando o componente for desmontado
+    // Verificar status de login periodicamente
+    const loginCheckInterval = setInterval(async () => {
+      try {
+        const loggedIn = await isLoggedIn();
+        if (loggedIn !== loginStatus) {
+          console.log("Status de login alterado:", loggedIn);
+          setLoginStatus(loggedIn);
+          if (loggedIn && !userData) {
+            console.log("Usuário logado, mas sem dados. Buscando dados...");
+            await fetchUserData(true);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao verificar status de login:", error);
+      }
+    }, 10000); // Verificar a cada 10 segundos
+    
+    // Limpar o intervalo quando o componente for desmontado
     return () => {
-      setUserData(null);
+      clearInterval(loginCheckInterval);
     };
-  }, []);
+  }, [loginStatus]);
   
   const fetchUserData = async (forceRefresh = false) => {
     setIsLoading(true);
