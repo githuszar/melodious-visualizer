@@ -4,7 +4,8 @@ import { toast } from "sonner";
 
 // Spotify API configuration
 const CLIENT_ID = "e983ab76967541819658cb3126d9f3df";
-const REDIRECT_URI = window.location.origin;
+const CLIENT_SECRET = "4f4d1a7a3697434db2a0edc2c484f80c";
+const REDIRECT_URI = "https://your-music-image.lovable.app/callback";
 const SCOPES = [
   "user-read-private",
   "user-read-email",
@@ -65,8 +66,7 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
   localStorage.removeItem("spotify_auth_state");
 
   try {
-    // Exchange code for token using a proxy endpoint
-    // Note: In a production app, this should be handled by a backend service
+    // Exchange code for token
     const tokenResponse = await getSpotifyToken(code);
     
     // Save the token and its expiry time
@@ -85,29 +85,36 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
 
 /**
  * Exchange authorization code for access token
- * Note: In a real app, this should be done server-side
  */
 const getSpotifyToken = async (code: string): Promise<SpotifyAuthResponse> => {
-  // Warning: This is a client-side implementation for demo purposes only
-  // The client secret should never be exposed in client-side code
-  // In a production environment, use a server-side proxy endpoint
+  const tokenUrl = 'https://accounts.spotify.com/api/token';
   
-  const params = new URLSearchParams();
-  params.append("client_id", CLIENT_ID);
-  params.append("grant_type", "authorization_code");
-  params.append("code", code);
-  params.append("redirect_uri", REDIRECT_URI);
+  const body = new URLSearchParams();
+  body.append('grant_type', 'authorization_code');
+  body.append('code', code);
+  body.append('redirect_uri', REDIRECT_URI);
+  body.append('client_id', CLIENT_ID);
+  body.append('client_secret', CLIENT_SECRET);
   
-  // This is a mock implementation that simulates a successful token exchange
-  // In a real app, you would make an actual API call to Spotify's token endpoint
-  
-  // Simulated response for demo purposes
-  return {
-    access_token: "mock_access_token_" + Math.random().toString(36).substring(2),
-    token_type: "Bearer",
-    expires_in: 3600,
-    scope: SCOPES.join(" ")
-  };
+  try {
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error_description || 'Failed to exchange token');
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    throw error;
+  }
 };
 
 /**

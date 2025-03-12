@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import About from "./pages/About";
 import Gallery from "./pages/Gallery";
 import NotFound from "./pages/NotFound";
+import SpotifyCallback from "./pages/SpotifyCallback";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<About />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/callback" element={<SpotifyCallback />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

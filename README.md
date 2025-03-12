@@ -1,69 +1,50 @@
-# Welcome to your Lovable project
 
-## Project info
+# YourMusicImage
 
-**URL**: https://lovable.dev/projects/d61f5c32-a036-49a1-a6cb-418d4ffe57f7
+Uma aplicação web que gera uma visualização única e abstrata com base no seu perfil musical do Spotify.
 
-## How can I edit this code?
+## Configuração
 
-There are several ways of editing your application.
+1. Credenciais do Spotify já estão configuradas:
+   - CLIENT_ID: "e983ab76967541819658cb3126d9f3df"
+   - CLIENT_SECRET: "4f4d1a7a3697434db2a0edc2c484f80c"
+   - REDIRECT_URI: "https://your-music-image.lovable.app/callback"
 
-**Use Lovable**
+2. A aplicação usa armazenamento local para persistir os dados do usuário e as imagens geradas.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d61f5c32-a036-49a1-a6cb-418d4ffe57f7) and start prompting.
+3. Para desenvolvimento local, você pode executar:
+   ```
+   npm install
+   npm run dev
+   ```
 
-Changes made via Lovable will be committed automatically to this repo.
+## Funcionalidades
 
-**Use your preferred IDE**
+- Autenticação via Spotify
+- Análise do perfil musical do usuário
+- Geração de um índice musical único
+- Criação de uma visualização abstrata baseada no perfil musical
+- Compartilhamento e download da imagem gerada
+- Salvar localmente no diretório `/Users/thiago/Desktop/GitHuszar/YourMusicImge`
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Tecnologias
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
 - React
-- shadcn-ui
+- TypeScript
 - Tailwind CSS
+- API do Spotify
+- Perlin Noise para geração de imagens
 
-## How can I deploy this project?
+## Endpoints da API do Spotify utilizados
 
-Simply open [Lovable](https://lovable.dev/projects/d61f5c32-a036-49a1-a6cb-418d4ffe57f7) and click on Share -> Publish.
+- Perfil do Usuário: `https://api.spotify.com/v1/me`
+- Top Artistas: `https://api.spotify.com/v1/me/top/artists`
+- Top Músicas: `https://api.spotify.com/v1/me/top/tracks`
+- Características de Áudio: `https://api.spotify.com/v1/audio-features`
 
-## I want to use a custom domain - is that possible?
+## Próximos passos
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+- Implementar backend para armazenamento persistente
+- Melhorar o algoritmo de geração de imagens
+- Adicionar mais opções de compartilhamento
+- Criar galeria pública de visualizações
