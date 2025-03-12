@@ -17,21 +17,31 @@ export const initializeDatabase = async (): Promise<void> => {
  */
 export const clearStoredData = async (): Promise<void> => {
   try {
-    // Limpar todos os dados relacionados ao usuário e autenticação do localStorage
+    // Limpar TODOS os dados relacionados ao Spotify e à autenticação
     const keysToRemove = [
       USER_DATA_KEY,
       "music_image",
       "spotify_token",
       "spotify_token_expiry",
       "spotify_refresh_token",
-      "spotify_auth_state"
+      "spotify_auth_state",
+      "spotify_user"
     ];
     
     // Remover cada chave individualmente
     keysToRemove.forEach(key => localStorage.removeItem(key));
     
-    // Limpar sessionStorage também para garantir
+    // Limpar completamente o sessionStorage
     sessionStorage.clear();
+    
+    // Limpar todos os cookies relacionados ao Spotify (mais difícil devido a restrições de segurança)
+    // Isso é uma tentativa, mas pode não funcionar para cookies HttpOnly
+    document.cookie.split(";").forEach(cookie => {
+      const [name] = cookie.trim().split("=");
+      if (name.includes("spotify")) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+      }
+    });
     
     // Limpar o banco de dados para garantir que dados frescos serão utilizados
     const cleared = await clearDatabase();

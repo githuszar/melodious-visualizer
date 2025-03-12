@@ -31,15 +31,19 @@ const Navbar = () => {
   }, []);
 
   const handleLogin = () => {
+    // Garantir que quaisquer tokens antigos sejam removidos antes de iniciar novo login
+    localStorage.removeItem("spotify_token");
+    localStorage.removeItem("spotify_token_expiry");
+    localStorage.removeItem("spotify_refresh_token");
+    localStorage.removeItem("spotify_auth_state");
+    
     initiateSpotifyLogin();
   };
 
   const handleLogout = async () => {
     await logout();
     setLoggedIn(false);
-    toast.success("Você foi desconectado. Clique em 'Connect Spotify' para iniciar uma nova sessão.");
-    // Forçar a atualização da página para garantir limpeza total do estado
-    window.location.reload();
+    // Não precisamos chamar window.location.reload() aqui porque o logout redireciona para o Spotify
   };
 
   return (

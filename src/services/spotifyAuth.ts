@@ -31,6 +31,7 @@ export const initiateSpotifyLogin = () => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem("spotify_auth_state");
   
   // Generate a random state value for CSRF protection
   const state = Math.random().toString(36).substring(2, 15);
@@ -43,7 +44,7 @@ export const initiateSpotifyLogin = () => {
   authUrl.searchParams.append("redirect_uri", REDIRECT_URI);
   authUrl.searchParams.append("scope", SCOPES.join(" "));
   authUrl.searchParams.append("state", state);
-  // Adicionando parâmetro show_dialog para forçar tela de login do Spotify
+  // Forçar tela de login do Spotify, garantindo que sempre solicite autenticação
   authUrl.searchParams.append("show_dialog", "true");
 
   // Redirect to Spotify auth page
@@ -215,12 +216,14 @@ export const logout = async (): Promise<void> => {
     // Limpar todos os dados armazenados (incluindo tokens)
     await clearStoredData();
     
-    // Forçar reload da página para garantir reinicialização completa do estado
     toast.success("Desconectado do Spotify com sucesso");
     
-    // Opcionalmente, podemos forçar um reload da página para garantir
-    // que todos os estados do React sejam reinicializados
-    // setTimeout(() => window.location.reload(), 500);
+    // Redirecionar para a página de logout do Spotify para forçar o logout na sessão do Spotify
+    // e depois voltar para a página inicial da aplicação
+    window.location.href = "https://www.spotify.com/logout/";
+    
+    // Não precisamos do setTimeout aqui porque o navegador será redirecionado pelo Spotify
+    // quando o logout for concluído
   } catch (error) {
     console.error("Erro ao fazer logout:", error);
     toast.error("Erro ao desconectar. Alguns dados podem não ter sido limpos.");
