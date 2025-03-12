@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { UserMusicData } from "@/types/spotify";
 import { handleSpotifyCallback, isLoggedIn } from "@/services/spotifyAuth";
 import { getMockUserMusicData, getRealUserMusicData } from "@/services/spotifyApi";
-import { getUserMusicData, saveUserMusicData } from "@/services/dataStorage";
+import { getUserMusicData, saveUserMusicData, initializeDatabase } from "@/services/dataStorage";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import SpotifyMusicImage from "@/components/SpotifyMusicImage";
@@ -18,6 +18,9 @@ const Index = () => {
   
   useEffect(() => {
     const initializeApp = async () => {
+      // Inicializar o banco de dados
+      await initializeDatabase();
+      
       // Check if this is a callback from Spotify auth
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
@@ -70,7 +73,7 @@ const Index = () => {
         console.log("Using mock data (user not logged in)");
       }
       
-      // Save the data to local storage
+      // Save the data to local storage and database
       saveUserMusicData(data);
       setUserData(data);
       

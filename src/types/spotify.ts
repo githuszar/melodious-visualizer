@@ -85,3 +85,24 @@ export interface UserMusicData {
 }
 
 export type TimeRange = 'short_term' | 'medium_term' | 'long_term';
+
+// Nova interface para o formato de armazenamento do usuário
+export interface UserRecord {
+  id: string;
+  name: string;
+  timestamp: string;
+  top_artist: string;
+  top_genre: string;
+  energy: number;
+  valence: number;
+  danceability: number;
+  acousticness: number;
+  music_score: number;
+  image_path?: string;
+  high_precision_seed?: number; // Campo para seed de alta precisão
+}
+
+// Interface para o banco de dados de usuários
+export interface UserDatabase {
+  users: UserRecord[];
+}

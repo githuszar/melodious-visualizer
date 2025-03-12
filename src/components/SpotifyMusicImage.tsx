@@ -8,7 +8,8 @@ import { getMockMusicImage } from "@/services/imageGenerator";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import PerlinCanvas from "./PerlinCanvas";
-import { Share, Download, Music } from "lucide-react";
+import { Share, Download, Music, Database } from "lucide-react";
+import { getAllUserRecords, exportDatabaseToJSON } from "@/services/databaseService";
 
 interface SpotifyMusicImageProps {
   userData: UserMusicData;
@@ -16,6 +17,20 @@ interface SpotifyMusicImageProps {
 
 const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
+  
+  useEffect(() => {
+    const fetchDatabaseStats = async () => {
+      try {
+        const records = await getAllUserRecords();
+        setTotalUsers(records.length);
+      } catch (error) {
+        console.error("Error fetching database stats:", error);
+      }
+    };
+    
+    fetchDatabaseStats();
+  }, []);
   
   useEffect(() => {
     if (userData && userData.musicIndex) {
@@ -44,6 +59,30 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
       } catch (error) {
         toast.error("Sharing failed. Try downloading instead.");
       }
+    }
+  };
+  
+  const handleExportDatabase = async () => {
+    try {
+      const jsonData = await exportDatabaseToJSON();
+      const jsonString = JSON.stringify(jsonData, null, 2);
+      
+      // Criar um blob com os dados JSON
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      
+      // Criar um link para download
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "music_database.json";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("Database exported successfully!");
+    } catch (error) {
+      console.error("Error exporting database:", error);
+      toast.error("Failed to export database");
     }
   };
   
@@ -114,6 +153,11 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
               />
             </div>
           </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Database Records</span>
+            <span className="text-sm">{totalUsers} users</span>
+          </div>
         </div>
         
         <div className="mt-6 flex gap-3">
@@ -131,6 +175,17 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
           >
             <Download className="mr-2 h-4 w-4" />
             Download
+          </Button>
+        </div>
+        
+        <div className="mt-3">
+          <Button
+            variant="outline"
+            className="w-full border-gray-200 hover:border-blue-500 hover:text-blue-500 transition-all"
+            onClick={handleExportDatabase}
+          >
+            <Database className="mr-2 h-4 w-4" />
+            Export Database
           </Button>
         </div>
       </div>

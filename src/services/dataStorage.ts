@@ -1,14 +1,26 @@
 
 import { UserMusicData } from "@/types/spotify";
+import { saveUserMusicDataToDatabase, getAllUserRecords, exportDatabaseToJSON, initializeWithMockDataIfEmpty } from "./databaseService";
 
 // Local storage keys
 const USER_DATA_KEY = "music_user_data";
 
 /**
- * Save user music data to local storage
+ * Inicializar o banco de dados se necessário
+ */
+export const initializeDatabase = async (): Promise<void> => {
+  await initializeWithMockDataIfEmpty();
+};
+
+/**
+ * Save user music data to local storage and database
  */
 export const saveUserMusicData = (data: UserMusicData): void => {
+  // Salvar no localStorage para acesso rápido
   localStorage.setItem(USER_DATA_KEY, JSON.stringify(data));
+  
+  // Salvar no banco de dados IndexedDB
+  saveUserMusicDataToDatabase(data);
 };
 
 /**
@@ -17,6 +29,14 @@ export const saveUserMusicData = (data: UserMusicData): void => {
 export const getUserMusicData = (): UserMusicData | null => {
   const data = localStorage.getItem(USER_DATA_KEY);
   return data ? JSON.parse(data) : null;
+};
+
+/**
+ * Exportar toda a base de dados para JSON
+ */
+export const exportDatabaseJSON = async (): Promise<string> => {
+  const data = await exportDatabaseToJSON();
+  return JSON.stringify(data, null, 2);
 };
 
 /**
