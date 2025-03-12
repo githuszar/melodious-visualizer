@@ -1,7 +1,7 @@
-
 import { SpotifyAuthResponse } from "@/types/spotify";
 import { toast } from "sonner";
 import axios from "axios";
+import { clearStoredData } from "./dataStorage";
 
 // Spotify API configuration
 const CLIENT_ID = "e983ab76967541819658cb3126d9f3df";
@@ -201,11 +201,21 @@ export const isLoggedIn = async (): Promise<boolean> => {
 };
 
 /**
- * Logout the user
+ * Logout the user and clear all stored data
  */
-export const logout = (): void => {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(TOKEN_EXPIRY_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  toast.info("Logged out from Spotify");
+export const logout = async (): Promise<void> => {
+  try {
+    // Limpar tokens de autenticação
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    
+    // Limpar todos os outros dados armazenados
+    await clearStoredData();
+    
+    toast.info("Desconectado do Spotify e dados limpos");
+  } catch (error) {
+    console.error("Erro ao fazer logout:", error);
+    toast.error("Erro ao desconectar. Alguns dados podem não ter sido limpos.");
+  }
 };

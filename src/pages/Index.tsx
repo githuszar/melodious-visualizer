@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { UserMusicData } from "@/types/spotify";
 import { handleSpotifyCallback, isLoggedIn } from "@/services/spotifyAuth";
@@ -30,7 +31,8 @@ const Index = () => {
         try {
           const success = await handleSpotifyCallback();
           if (success) {
-            // Limpar dados antigos para garantir que temos dados novos
+            console.log("Autenticação com Spotify bem-sucedida, limpando todos os dados anteriores");
+            // Limpar todos os dados armazenados antes de buscar novos
             await clearStoredData();
             await fetchUserData(true); // Force refresh after login
             
@@ -52,8 +54,9 @@ const Index = () => {
       try {
         const loggedIn = await isLoggedIn();
         if (loggedIn) {
-          console.log("Usuário está logado, buscando dados frescos");
-          // Sempre forçar a atualização dos dados a cada login
+          console.log("Usuário está logado, limpando dados antigos e buscando dados frescos");
+          // Limpar dados existentes e sempre forçar a atualização dos dados a cada login
+          await clearStoredData();
           await fetchUserData(true);
         } else {
           console.log("Usuário não está logado");
@@ -95,10 +98,15 @@ const Index = () => {
       toast.error("Falha ao carregar seus dados musicais. Tente novamente.");
       
       // Check if we have any data in storage as fallback
-      const storedData = getUserMusicData();
-      if (storedData) {
-        setUserData(storedData);
-        toast.info("Usando dados em cache.");
+      if (!forceRefresh) {
+        const storedData = getUserMusicData();
+        if (storedData) {
+          setUserData(storedData);
+          toast.info("Usando dados em cache.");
+        }
+      } else {
+        // Se estamos forçando atualização, não devemos usar cache
+        console.log("Ignorando dados em cache pois estamos forçando atualização");
       }
     } finally {
       setIsLoading(false);

@@ -1,3 +1,4 @@
+
 import { UserMusicData } from "@/types/spotify";
 import { saveUserMusicDataToDatabase, getAllUserRecords, exportDatabaseToJSON, initializeWithMockDataIfEmpty, clearDatabase } from "./databaseService";
 
@@ -15,11 +16,28 @@ export const initializeDatabase = async (): Promise<void> => {
  * Limpar todos os dados armazenados, incluindo o banco de dados
  */
 export const clearStoredData = async (): Promise<void> => {
-  localStorage.removeItem(USER_DATA_KEY);
-  localStorage.removeItem("music_image");
-  // Limpar o banco de dados para garantir que dados frescos serão utilizados
-  await clearDatabase();
-  console.log("Dados de usuário limpos do localStorage e banco de dados");
+  try {
+    // Remover todos os dados relacionados ao usuário do localStorage
+    localStorage.removeItem(USER_DATA_KEY);
+    localStorage.removeItem("music_image");
+    localStorage.removeItem("spotify_token");
+    localStorage.removeItem("spotify_token_expiry");
+    localStorage.removeItem("spotify_refresh_token");
+    
+    // Limpar o banco de dados para garantir que dados frescos serão utilizados
+    const cleared = await clearDatabase();
+    
+    if (cleared) {
+      console.log("Dados de usuário limpos com sucesso do localStorage e banco de dados");
+    } else {
+      console.error("Falha ao limpar o banco de dados");
+    }
+    
+    return;
+  } catch (error) {
+    console.error("Erro ao limpar dados armazenados:", error);
+    throw error;
+  }
 };
 
 /**
