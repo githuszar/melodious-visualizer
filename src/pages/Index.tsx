@@ -4,7 +4,7 @@ import { UserMusicData } from "@/types/spotify";
 import { handleSpotifyCallback, isLoggedIn } from "@/services/spotifyAuth";
 import { getMockUserMusicData, getRealUserMusicData } from "@/services/spotifyApi";
 import { getUserMusicData, saveUserMusicData, initializeDatabase } from "@/services/dataStorage";
-import { Button } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import SpotifyMusicImage from "@/components/SpotifyMusicImage";
 import MusicStats from "@/components/MusicStats";
