@@ -22,20 +22,52 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [imageGenerated, setImageGenerated] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [canvasReady, setCanvasReady] = useState<boolean>(false);
   
-  // Função para capturar a imagem do canvas
+  // Carregar estatísticas do banco de dados
+  useEffect(() => {
+    const fetchDatabaseStats = async () => {
+      try {
+        const records = await getAllUserRecords();
+        setTotalUsers(records.length);
+      } catch (error) {
+        console.error("Error fetching database stats:", error);
+      }
+    };
+    
+    fetchDatabaseStats();
+  }, []);
+  
+  // Função para capturar a imagem do canvas quando estiver pronto
   const captureCanvasImage = useCallback(() => {
-    if (!userData?.musicIndex || imageGenerated) return;
+    if (!userData?.musicIndex || !canvasReady) {
+      console.log("Aguardando canvas ficar pronto ou dados musicais...", {
+        musicIndexPresente: !!userData?.musicIndex,
+        canvasReady
+      });
+      return;
+    }
+    
+    if (imageGenerated && imageDataUrl) {
+      console.log("Imagem já foi gerada anteriormente, pulando captura");
+      return;
+    }
     
     console.log("Capturando imagem do canvas com seed:", userData.musicIndex.imageSeed);
     setIsGenerating(true);
     
-    // Definir um pequeno atraso para garantir que o canvas foi renderizado
+    // Definir um pequeno atraso para garantir que o canvas foi renderizado completamente
     setTimeout(() => {
       const canvas = document.querySelector('canvas');
       if (canvas) {
         try {
+          console.log("Canvas encontrado, dimensões:", canvas.width, canvas.height);
           const dataURL = canvas.toDataURL('image/png');
+          
+          if (!dataURL || dataURL === 'data:,') {
+            throw new Error("Canvas vazio ou inacessível");
+          }
+          
           setImageDataUrl(dataURL);
           setImageGenerated(true);
           
@@ -45,6 +77,8 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
           
           // Tentar também salvar no disco local via script Python
           tryToSaveLocally(userData.userId, dataURL);
+          
+          toast.success("Visualização musical gerada com sucesso!");
         } catch (error) {
           console.error("Erro ao capturar imagem do canvas:", error);
           toast.error("Erro ao gerar a imagem. Tente novamente.");
@@ -56,8 +90,15 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
         setIsGenerating(false);
         toast.error("Canvas não encontrado. Tente recarregar a página.");
       }
-    }, 800); // Aumento do tempo para garantir que o canvas está completamente renderizado
-  }, [userData?.musicIndex, userData?.userId, imageGenerated]);
+    }, 1000); // Aumento do tempo para garantir que o canvas está completamente renderizado
+  }, [userData?.musicIndex, userData?.userId, canvasReady, imageGenerated, imageDataUrl]);
+  
+  // Chamar captura quando o canvas estiver pronto
+  useEffect(() => {
+    if (canvasReady && !imageGenerated && !isGenerating) {
+      captureCanvasImage();
+    }
+  }, [canvasReady, captureCanvasImage, imageGenerated, isGenerating]);
   
   // Função auxiliar para tentar salvar localmente via script Python
   const tryToSaveLocally = (userId: string, imageData: string) => {
@@ -79,24 +120,10 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
     }
   };
   
-  useEffect(() => {
-    const fetchDatabaseStats = async () => {
-      try {
-        const records = await getAllUserRecords();
-        setTotalUsers(records.length);
-      } catch (error) {
-        console.error("Error fetching database stats:", error);
-      }
-    };
-    
-    fetchDatabaseStats();
-  }, []);
-  
-  useEffect(() => {
-    if (!imageGenerated && !isGenerating) {
-      captureCanvasImage();
-    }
-  }, [captureCanvasImage, imageGenerated, isGenerating]);
+  const handleCanvasReady = () => {
+    console.log("Canvas está pronto para captura");
+    setCanvasReady(true);
+  };
   
   const handleDownload = () => {
     if (imageDataUrl) {
@@ -157,12 +184,13 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
   const handleRegenerateImage = () => {
     setImageGenerated(false);
     setImageDataUrl(null);
+    setCanvasReady(false);
     setIsGenerating(true);
     
     // Aguardar um momento para a limpeza do estado e então recapturar
     setTimeout(() => {
-      captureCanvasImage();
       toast.success("Imagem sendo regenerada...");
+      setIsGenerating(false);
     }, 100);
   };
   
@@ -216,6 +244,7 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
           musicIndex={userData.musicIndex} 
           isGenerating={isGenerating}
           imageGenerated={imageGenerated}
+          onCanvasReady={handleCanvasReady}
         />
         
         <MusicIndexStats 
