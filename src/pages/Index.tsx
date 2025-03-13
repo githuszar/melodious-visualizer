@@ -16,6 +16,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userData, setUserData] = useState<UserMusicData | null>(null);
   const [loginStatus, setLoginStatus] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   useEffect(() => {
     const initializeApp = async () => {
@@ -63,6 +64,8 @@ const Index = () => {
         console.error("Erro ao verificar login:", error);
         setIsLoading(false);
         setUserData(null); // Resetar dados em caso de erro
+        setErrorMessage("Não foi possível verificar seu status de login. Por favor, tente novamente.");
+        toast.error("Erro ao verificar login. Por favor, recarregue a página.");
       }
     };
     
@@ -93,6 +96,8 @@ const Index = () => {
   
   const fetchUserData = async (forceRefresh = false) => {
     setIsLoading(true);
+    setErrorMessage(null);
+    
     try {
       const loggedIn = await isLoggedIn();
       if (!loggedIn) {
@@ -117,7 +122,12 @@ const Index = () => {
       toast.success("Dados musicais obtidos com sucesso!");
     } catch (error) {
       console.error("Error fetching user data:", error);
-      toast.error("Falha ao carregar seus dados musicais. Tente novamente.");
+      const errorMsg = error instanceof Error 
+        ? error.message 
+        : "Falha ao carregar seus dados musicais. Tente novamente.";
+      
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
       
       // Check if we have any data in storage as fallback
       if (!forceRefresh) {
@@ -152,7 +162,7 @@ const Index = () => {
             <MusicVisualization userData={userData} />
           </>
         ) : (
-          <LoginForm />
+          <LoginForm errorMessage={errorMessage} />
         )}
       </main>
       
