@@ -45,7 +45,7 @@ const SpotifyCallback = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <div className="glass-panel p-8 max-w-md w-full text-center animate-fade-in">
         <div className="bg-spotify/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Music className={`h-10 w-10 text-spotify ${isProcessing ? 'animate-spin' : ''}`} />
+          <Music className={`h-10 w-10 text-spotify ${isProcessing ? 'animate-pulse' : ''}`} />
         </div>
         
         <h1 className="text-2xl font-bold mb-2">
