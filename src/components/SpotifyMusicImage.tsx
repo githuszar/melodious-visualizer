@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { UserMusicData } from "@/types/spotify";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,34 @@ interface SpotifyMusicImageProps {
 const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [imageGenerated, setImageGenerated] = useState<boolean>(false);
+  
+  // Função para capturar a imagem do canvas
+  const captureCanvasImage = useCallback(() => {
+    if (!userData?.musicIndex || imageGenerated) return;
+    
+    console.log("Capturando imagem do canvas...");
+    
+    // Definir um pequeno atraso para garantir que o canvas foi renderizado
+    setTimeout(() => {
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        try {
+          const dataURL = canvas.toDataURL('image/png');
+          setImageDataUrl(dataURL);
+          setImageGenerated(true);
+          
+          // Save to local storage
+          saveGeneratedImage(dataURL);
+          console.log("Imagem capturada e salva com sucesso");
+        } catch (error) {
+          console.error("Erro ao capturar imagem do canvas:", error);
+        }
+      } else {
+        console.error("Canvas não encontrado para captura");
+      }
+    }, 500);
+  }, [userData?.musicIndex, imageGenerated]);
   
   useEffect(() => {
     const fetchDatabaseStats = async () => {
@@ -32,26 +60,15 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
   }, []);
   
   useEffect(() => {
-    if (userData && userData.musicIndex) {
-      // O componente PerlinCanvas gera a imagem diretamente
-      // Apenas salvamos o dataURL quando ele é gerado
-      
-      // Capturar o dataURL do canvas após renderização
-      const canvas = document.querySelector('canvas');
-      if (canvas) {
-        const dataURL = canvas.toDataURL('image/png');
-        setImageDataUrl(dataURL);
-        
-        // Save to local storage
-        saveGeneratedImage(dataURL);
-      }
-    }
-  }, [userData]);
+    captureCanvasImage();
+  }, [captureCanvasImage]);
   
   const handleDownload = () => {
     if (imageDataUrl) {
       downloadImage(imageDataUrl);
-      toast.success("Image downloaded successfully!");
+      toast.success("Imagem baixada com sucesso!");
+    } else {
+      toast.error("Imagem não disponível. Tente recarregar a página.");
     }
   };
   
@@ -59,11 +76,13 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
     if (imageDataUrl) {
       try {
         if (await shareImage(imageDataUrl, navigator.share ? "native" : "twitter")) {
-          toast.success("Image shared successfully!");
+          toast.success("Imagem compartilhada com sucesso!");
         }
       } catch (error) {
-        toast.error("Sharing failed. Try downloading instead.");
+        toast.error("Falha ao compartilhar. Tente baixar a imagem.");
       }
+    } else {
+      toast.error("Imagem não disponível para compartilhamento.");
     }
   };
   
@@ -84,11 +103,23 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
       link.click();
       document.body.removeChild(link);
       
-      toast.success("Database exported successfully!");
+      toast.success("Banco de dados exportado com sucesso!");
     } catch (error) {
       console.error("Error exporting database:", error);
-      toast.error("Failed to export database");
+      toast.error("Falha ao exportar banco de dados");
     }
+  };
+  
+  // Regenerar a imagem forçando uma nova captura
+  const handleRegenerateImage = () => {
+    setImageGenerated(false);
+    setImageDataUrl(null);
+    
+    // Aguardar um momento para a limpeza do estado e então recapturar
+    setTimeout(() => {
+      captureCanvasImage();
+      toast.success("Imagem sendo regenerada...");
+    }, 100);
   };
   
   return (
@@ -96,8 +127,8 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <span className="text-xs font-medium text-spotify bg-spotify/10 rounded-full px-3 py-1">Your Music Visualization</span>
-            <h3 className="mt-2 text-xl font-bold">Unique Musical Fingerprint</h3>
+            <span className="text-xs font-medium text-spotify bg-spotify/10 rounded-full px-3 py-1">Sua Visualização Musical</span>
+            <h3 className="mt-2 text-xl font-bold">Impressão Digital Musical Única</h3>
           </div>
           <div className="bg-spotify p-2 rounded-full">
             <Music className="h-5 w-5 text-white" />
@@ -121,12 +152,12 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
         
         <div className="mt-6 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Music Score</span>
+            <span className="text-sm font-medium">Score Musical</span>
             <span className="text-lg font-bold">{userData.musicIndex.uniqueScore}/100</span>
           </div>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Primary Genres</span>
+            <span className="text-sm font-medium">Gêneros Principais</span>
             <div className="flex flex-wrap justify-end gap-1">
               {userData.topGenres.slice(0, 3).map((genre, index) => (
                 <span 
@@ -140,7 +171,7 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
           </div>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Energy Level</span>
+            <span className="text-sm font-medium">Nível de Energia</span>
             <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-spotify" 
@@ -150,7 +181,7 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
           </div>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Mood</span>
+            <span className="text-sm font-medium">Humor</span>
             <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-blue-500" 
@@ -160,8 +191,8 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
           </div>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Database Records</span>
-            <span className="text-sm">{totalUsers} users</span>
+            <span className="text-sm font-medium">Registros no Banco</span>
+            <span className="text-sm">{totalUsers} usuários</span>
           </div>
         </div>
         
@@ -172,25 +203,34 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
             onClick={handleShare}
           >
             <Share className="mr-2 h-4 w-4" />
-            Share
+            Compartilhar
           </Button>
           <Button 
             className="flex-1 spotify-button" 
             onClick={handleDownload}
           >
             <Download className="mr-2 h-4 w-4" />
-            Download
+            Baixar
           </Button>
         </div>
         
-        <div className="mt-3">
+        <div className="mt-3 flex gap-3">
           <Button
             variant="outline"
-            className="w-full border-gray-200 hover:border-blue-500 hover:text-blue-500 transition-all"
+            className="flex-1 border-gray-200 hover:border-blue-500 hover:text-blue-500 transition-all"
             onClick={handleExportDatabase}
           >
             <Database className="mr-2 h-4 w-4" />
-            Export Database
+            Exportar Banco
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="flex-1 border-gray-200 hover:border-green-500 hover:text-green-500 transition-all"
+            onClick={handleRegenerateImage}
+          >
+            <Music className="mr-2 h-4 w-4" />
+            Regenerar
           </Button>
         </div>
       </div>

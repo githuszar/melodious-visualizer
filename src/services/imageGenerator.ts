@@ -1,4 +1,3 @@
-
 import { MusicIndex } from "@/types/spotify";
 
 // Enhanced Perlin Noise class with higher precision
@@ -222,6 +221,22 @@ export const generatePerlinImage = (
     
     // Apply the modified pixels back to the canvas
     context.putImageData(imageData, 0, 0);
+    
+    // Adicionar texto com o score musical
+    context.font = "bold 18px Arial";
+    context.fillStyle = "white";
+    context.globalAlpha = 0.9;
+    context.textAlign = "center";
+    context.fillText(`Score Musical: ${musicIndex.uniqueScore}/100`, size / 2, size - 20);
+    
+    const now = new Date();
+    const dateStr = now.toLocaleDateString();
+    context.font = "12px Arial";
+    context.globalAlpha = 0.7;
+    context.fillText(`Gerado em: ${dateStr}`, size / 2, size - 40);
+    
+    // Restaurar alpha
+    context.globalAlpha = 1.0;
   };
   
   // Helper pattern functions

@@ -40,13 +40,16 @@ def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
     valence = music_data.get("valence", 0.5)
     danceability = music_data.get("danceability", 0.5)
     acousticness = music_data.get("acousticness", 0.3)
+    unique_score = music_data.get("uniqueScore", 50)
+    timestamp = music_data.get("timestamp", time.time())
     
-    # Criar seed de alta precisão
-    timestamp = time.time()
+    # Criar seed de alta precisão baseada no timestamp atual
     random_seed = int(timestamp * 1000000) % 10000000000
     
     # Incorporar características musicais na seed para maior unicidade
-    seed_value = random_seed + int(energy * 10000) + int(valence * 20000) + int(danceability * 30000) + int(acousticness * 40000)
+    seed_value = random_seed + int(energy * 10000) + int(valence * 20000) + int(danceability * 30000) + int(acousticness * 40000) + int(unique_score * 500)
+    
+    print(f"Gerando imagem para o usuário {user_id} com seed {seed_value} e timestamp {timestamp}")
     
     # Criar múltiplas camadas de ruído com diferentes oitavas para mais detalhe
     noise1 = PerlinNoise(octaves=3, seed=int(seed_value % 1000000000))
@@ -131,14 +134,20 @@ def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
                 x_pos = i * spacing
                 draw.line([(x_pos, 0), (x_pos, height)], fill=(255, 255, 255, 30), width=1)
     
+    # Adicionar número do score musical único na imagem
+    draw.text((20, height - 30), f"Score Musical: {unique_score}/100", fill=(255, 255, 255, 200))
+    draw.text((20, height - 50), f"Gerado em: {datetime.fromtimestamp(timestamp/1000).strftime('%d/%m/%Y %H:%M')}", fill=(255, 255, 255, 150))
+    
     # Guardar dados do usuário como metadados na imagem
     metadata = {
         "user_id": user_id,
+        "timestamp": timestamp,
+        "unique_score": unique_score,
         "energy": energy,
         "valence": valence,
         "danceability": danceability,
         "acousticness": acousticness,
-        "timestamp": datetime.now().isoformat()
+        "generated_at": datetime.now().isoformat()
     }
     
     # Salvar a imagem com nome baseado no ID do usuário
@@ -152,16 +161,44 @@ def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
     print(f"Imagem gerada para {user_id} em {img_path}")
     return img_path
 
+def check_for_new_data():
+    """
+    Verifica se existem novos dados JSON para processar
+    """
+    # Caminho para um possível arquivo de dados temporário criado pelo frontend
+    temp_data_path = os.path.join(OUTPUT_DIR, "temp_music_data.json")
+    
+    if os.path.exists(temp_data_path):
+        try:
+            with open(temp_data_path, 'r') as f:
+                data = json.load(f)
+            
+            # Processar os dados
+            user_id = data.get('user_id', f"user_{int(time.time())}")
+            music_data = data.get('music_data', {})
+            
+            # Gerar a imagem
+            generate_perlin_image(user_id, music_data)
+            
+            # Remover o arquivo temporário após processamento
+            os.remove(temp_data_path)
+            print(f"Dados processados do arquivo {temp_data_path}")
+            return True
+        except Exception as e:
+            print(f"Erro ao processar arquivo de dados: {e}")
+    
+    return False
+
 def create_demo_visualization():
     """
     Cria uma visualização demo com diferentes perfis musicais
     """
     # Criar diferentes perfis musicais para demonstração
     profiles = [
-        {"name": "Música Energética", "energy": 0.9, "valence": 0.8, "danceability": 0.85, "acousticness": 0.1},
-        {"name": "Música Calma", "energy": 0.2, "valence": 0.6, "danceability": 0.3, "acousticness": 0.8},
-        {"name": "Música Feliz", "energy": 0.6, "valence": 0.9, "danceability": 0.7, "acousticness": 0.4},
-        {"name": "Música Triste", "energy": 0.4, "valence": 0.2, "danceability": 0.4, "acousticness": 0.6}
+        {"name": "Música Energética", "energy": 0.9, "valence": 0.8, "danceability": 0.85, "acousticness": 0.1, "uniqueScore": 85},
+        {"name": "Música Calma", "energy": 0.2, "valence": 0.6, "danceability": 0.3, "acousticness": 0.8, "uniqueScore": 62},
+        {"name": "Música Feliz", "energy": 0.6, "valence": 0.9, "danceability": 0.7, "acousticness": 0.4, "uniqueScore": 73},
+        {"name": "Música Triste", "energy": 0.4, "valence": 0.2, "danceability": 0.4, "acousticness": 0.6, "uniqueScore": 45}
     ]
     
     # Gerar imagem para cada perfil
@@ -174,21 +211,26 @@ def create_demo_visualization():
 if __name__ == "__main__":
     print("Iniciando gerador de imagens YourMusicImage...")
     
-    # Criar visualizações de demonstração
-    create_demo_visualization()
+    # Verificar se existem novos dados para processar
+    new_data_processed = check_for_new_data()
     
-    # Também criar uma imagem para um usuário "atual" com perfil aleatório
-    current_user_profile = {
-        "energy": random.uniform(0.3, 0.9),
-        "valence": random.uniform(0.2, 0.95),
-        "danceability": random.uniform(0.4, 0.85),
-        "acousticness": random.uniform(0.1, 0.8)
-    }
-    
-    current_user_id = f"current_user_{int(time.time())}"
-    img_path = generate_perlin_image(current_user_id, current_user_profile)
+    if not new_data_processed:
+        print("Nenhum dado novo encontrado, gerando visualizações de demonstração...")
+        # Criar visualizações de demonstração
+        create_demo_visualization()
+        
+        # Também criar uma imagem para um usuário "atual" com perfil aleatório
+        current_user_profile = {
+            "energy": random.uniform(0.3, 0.9),
+            "valence": random.uniform(0.2, 0.95),
+            "danceability": random.uniform(0.4, 0.85),
+            "acousticness": random.uniform(0.1, 0.8),
+            "uniqueScore": random.randint(30, 95),
+            "timestamp": time.time()
+        }
+        
+        current_user_id = f"current_user_{int(time.time())}"
+        img_path = generate_perlin_image(current_user_id, current_user_profile)
     
     print("\nProcesso concluído!")
     print(f"Imagens geradas e salvas em: {OUTPUT_DIR}")
-    print(f"Imagem do usuário atual: {img_path}")
-    print(f"Perfil musical do usuário atual: {current_user_profile}")

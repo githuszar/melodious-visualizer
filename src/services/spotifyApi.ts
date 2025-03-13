@@ -196,6 +196,9 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
       `hsl(${Math.floor(30 + (150 * avgAcousticness))}, ${Math.floor(60 + avgEnergy * 30)}%, ${Math.floor(40 + avgValence * 30)}%)`
     ];
     
+    // Gerar um timestamp atual para garantir unicidade a cada login
+    const timestamp = Date.now();
+    
     // Create a much more unique score with high precision
     // Using multiple features and prime numbers to increase uniqueness
     const uniquenessFactors = [
@@ -205,7 +208,7 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
       avgAcousticness * 29.71,
       (avgTempos / 200) * 31.37,
       (user.id.charCodeAt(0) % 100) / 100 * 37.43,
-      (Date.now() % 10000) / 10000 * 41.59
+      (timestamp % 10000) / 10000 * 41.59
     ];
     
     // Create a high-precision unique score (0-100)
@@ -222,8 +225,24 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
              (track.name.charCodeAt(0) * Math.log(10));
     }, 0);
     
+    // Adicionar o timestamp atual para garantir uma seed diferente a cada login
+    const seedWithTimestamp = highPrecisionSeed + timestamp;
+    
     // Normalize to a stable range but keep high precision
-    const normalizedSeed = Math.abs(Math.sin(highPrecisionSeed)) * 9999999999;
+    const normalizedSeed = Math.abs(Math.sin(seedWithTimestamp)) * 9999999999;
+    
+    console.log("Gerando perfil musical único com timestamp:", timestamp);
+    console.log("Score único gerado:", uniqueScore);
+    
+    // Gerar dados para o arquivo Python local em caso de integração com o script Python
+    generateLocalMusicImageData(user.id, {
+      energy: avgEnergy,
+      valence: avgValence,
+      danceability: avgDanceability,
+      acousticness: avgAcousticness,
+      uniqueScore,
+      timestamp
+    });
     
     return {
       userId: user.id,
@@ -249,5 +268,33 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
   } catch (error) {
     console.error("Error fetching real user data:", error);
     throw new Error("Failed to fetch data from Spotify API");
+  }
+};
+
+/**
+ * Gera dados para o script Python local de geração de imagem
+ */
+const generateLocalMusicImageData = (userId: string, musicData: any) => {
+  try {
+    // Criar um objeto com os dados para o arquivo JSON
+    const data = {
+      user_id: userId,
+      timestamp: Date.now(),
+      music_data: musicData
+    };
+    
+    // Converter para string JSON
+    const jsonData = JSON.stringify(data, null, 2);
+    
+    // Exibir no console para debug
+    console.log("Dados gerados para integração com Python:", jsonData);
+    
+    // Aqui podemos implementar uma chamada para uma API local ou serviço que escreve o arquivo
+    // Por enquanto, apenas logamos no console
+    
+    return true;
+  } catch (error) {
+    console.error("Erro ao gerar dados para Python:", error);
+    return false;
   }
 };
