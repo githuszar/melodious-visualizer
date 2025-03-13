@@ -1,4 +1,3 @@
-
 import { 
   SpotifyUser, 
   SpotifyArtist, 
@@ -303,28 +302,8 @@ export const getRealUserMusicData = async (forceRefresh: boolean = true): Promis
       imageSeed: normalizedSeed
     };
     
-    // Tentativa de salvar dados para o script Python
-    try {
-      // Tentar salvar a imagem localmente via localStorage temporário
-      saveImageToLocalFile(musicIndex);
-      
-      // Tentativa de gerar arquivo temporário para o Python
-      generateLocalPythonData({
-        userId: user.id,
-        userProfile,
-        topArtists: [],
-        topTracks: [],
-        userPlaylists: [],
-        topGenres,
-        musicIndex,
-        lastUpdated: new Date().toISOString()
-      });
-    } catch (localSaveError) {
-      console.warn("Não foi possível salvar dados localmente:", localSaveError);
-    }
-    
-    // Retornar os dados completos
-    return {
+    // Criar o objeto completo de dados musicais do usuário
+    const userMusicData = {
       userId: user.id,
       userProfile,
       topArtists,
@@ -335,6 +314,20 @@ export const getRealUserMusicData = async (forceRefresh: boolean = true): Promis
       musicIndex,
       lastUpdated: new Date().toISOString()
     };
+    
+    // Tentativa de salvar dados para o script Python
+    try {
+      // Tentar salvar a imagem localmente via localStorage temporário
+      saveImageToLocalFile(musicIndex);
+      
+      // Tentativa de gerar arquivo temporário para o Python
+      generateLocalPythonData(userMusicData);
+    } catch (localSaveError) {
+      console.warn("Não foi possível salvar dados localmente:", localSaveError);
+    }
+    
+    // Retornar os dados completos
+    return userMusicData;
   } catch (error) {
     console.error("Error fetching real user data:", error);
     throw new Error("Failed to fetch data from Spotify API");
