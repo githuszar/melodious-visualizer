@@ -1,10 +1,12 @@
+
 import axios from "axios";
 
 // Spotify API Endpoints & Credentials
 const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
 const TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token";
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-const REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
+// Use a URI de redirecionamento exata que foi configurada no painel do Spotify Developer
+const REDIRECT_URI = "https://melodious-visualizer.lovable.app/callback";
 const SCOPES = "user-read-email user-read-private user-top-read playlist-read-private playlist-read-collaborative user-library-read";
 
 /**
@@ -48,6 +50,8 @@ export const initiateSpotifyLogin = () => {
       show_dialog: "true" // Forçar diálogo de login para sempre gerar nova autenticação
     });
     
+    console.log("URL de redirecionamento: ", REDIRECT_URI);
+    
     // Redirect to Spotify auth page
     window.location.href = `${AUTH_ENDPOINT}?${params.toString()}`;
   } catch (error) {
@@ -74,6 +78,7 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
     
     localStorage.removeItem('spotify_auth_state');
     
+    // Usar a mesma URL de redirecionamento que foi usada na autorização inicial
     const tokenResponse = await axios.post(
       TOKEN_ENDPOINT,
       new URLSearchParams({
