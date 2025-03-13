@@ -1,5 +1,6 @@
 
 # Gerador de imagem Perlin Noise para YourMusicImage
+# Algoritmo melhorado para garantir unicidade baseada em timestamp
 
 import os
 import random
@@ -22,6 +23,7 @@ if not os.path.exists(OUTPUT_DIR):
 def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
     """
     Gera uma imagem abstrata baseada em dados musicais usando ruído Perlin
+    Modificado para garantir imagens únicas por login usando timestamp
     
     Args:
         user_id: ID único do usuário
@@ -41,6 +43,9 @@ def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
     danceability = music_data.get("danceability", 0.5)
     acousticness = music_data.get("acousticness", 0.3)
     unique_score = music_data.get("uniqueScore", 50)
+    
+    # Usar timestamp recebido ou gerar um novo para garantir unicidade
+    # Este é o ponto-chave para garantir imagens únicas em cada login
     timestamp = music_data.get("timestamp", time.time())
     
     # Criar seed de alta precisão baseada no timestamp atual
@@ -51,6 +56,7 @@ def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
     seed_value = random_seed + int(energy * 10000) + int(valence * 20000) + int(danceability * 30000) + int(acousticness * 40000) + int(unique_score * 500)
     
     print(f"Gerando imagem para o usuário {user_id} com seed {seed_value}")
+    print(f"Usando timestamp único: {timestamp}")
     
     # Criar múltiplas camadas de ruído com diferentes oitavas para mais detalhe
     noise1 = PerlinNoise(octaves=3, seed=int(seed_value % 1000000000))
@@ -119,23 +125,7 @@ def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
                             new_b = int(b * (1 - factor) + blend_color[2] * factor)
                             draw.point((rx, ry), (new_r, new_g, new_b))
     
-    # Adicionar padrões baseados em danceability
-    if danceability > 0.7:
-        # Adicionar padrões rítmicos para músicas dançantes
-        line_count = int(5 + danceability * 10)
-        spacing = width / line_count
-        
-        for i in range(line_count):
-            if (seed_value + i) % 2 == 0:
-                # Linhas horizontais rítmicas
-                y_pos = i * spacing
-                draw.line([(0, y_pos), (width, y_pos)], fill=(255, 255, 255, 30), width=1)
-            else:
-                # Linhas verticais rítmicas
-                x_pos = i * spacing
-                draw.line([(x_pos, 0), (x_pos, height)], fill=(255, 255, 255, 30), width=1)
-    
-    # Adicionar número do score musical único na imagem
+    # Adicionar texto com o score musical único
     draw.text((20, height - 30), f"Score Musical: {unique_score}/100", fill=(255, 255, 255, 200))
     draw.text((20, height - 50), f"Gerado em: {datetime.fromtimestamp(timestamp/1000).strftime('%d/%m/%Y %H:%M')}", fill=(255, 255, 255, 150))
     
@@ -178,6 +168,10 @@ def check_for_new_data():
             user_id = data.get('user_id', f"user_{int(time.time())}")
             music_data = data.get('music_data', {})
             
+            # Garantir que o timestamp seja usado para imagem única
+            if 'timestamp' not in music_data:
+                music_data['timestamp'] = time.time() * 1000
+            
             # Gerar a imagem
             generate_perlin_image(user_id, music_data)
             
@@ -188,11 +182,38 @@ def check_for_new_data():
         except Exception as e:
             print(f"Erro ao processar arquivo de dados: {e}")
     
+    # Procurar dados em localStorage via tempfile
+    # O frontend salva uma cópia no localStorage que pode ser lida por script Python local
+    temp_data_path_ls = os.path.join(OUTPUT_DIR, "temp_music_data_for_python.json")
+    if os.path.exists(temp_data_path_ls):
+        try:
+            with open(temp_data_path_ls, 'r') as f:
+                data = json.load(f)
+            
+            # Processar os dados
+            user_id = data.get('user_id', f"user_{int(time.time())}")
+            music_data = data.get('music_data', {})
+            
+            # Garantir que o timestamp seja usado para imagem única
+            if 'timestamp' not in music_data:
+                music_data['timestamp'] = time.time() * 1000
+            
+            # Gerar a imagem
+            generate_perlin_image(user_id, music_data)
+            
+            # Remover o arquivo temporário após processamento
+            os.remove(temp_data_path_ls)
+            print(f"Dados processados do arquivo {temp_data_path_ls}")
+            return True
+        except Exception as e:
+            print(f"Erro ao processar arquivo de dados localStorage: {e}")
+    
     return False
 
 def create_demo_visualization():
     """
     Cria uma visualização demo com diferentes perfis musicais
+    Cada execução gera imagens completamente novas graças ao timestamp
     """
     # Criar diferentes perfis musicais para demonstração
     profiles = [
@@ -230,6 +251,7 @@ if __name__ == "__main__":
         create_demo_visualization()
         
         # Também criar uma imagem para um usuário "atual" com perfil aleatório
+        # Usando timestamp atual para garantir unicidade
         current_user_profile = {
             "energy": random.uniform(0.3, 0.9),
             "valence": random.uniform(0.2, 0.95),

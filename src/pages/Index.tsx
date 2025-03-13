@@ -31,29 +31,11 @@ const Index = () => {
         setLoginStatus(loggedIn);
         
         if (loggedIn) {
-          console.log("Usuário está logado, verificando dados");
+          console.log("Usuário está logado, buscando dados em tempo real");
           
-          // Verificar timestamp do último login para decidir se precisa atualizar dados
-          const lastLoginTime = localStorage.getItem("spotify_last_login_time");
-          const currentTime = Date.now();
-          const ONE_HOUR = 60 * 60 * 1000; // 1 hora em milissegundos
-          
-          // Se não há registro de último login ou se passou mais de 1 hora, busca dados novos
-          if (!lastLoginTime || (currentTime - parseInt(lastLoginTime)) > ONE_HOUR) {
-            console.log("Buscando dados frescos (último login expirado ou inexistente)");
-            await fetchUserData(true);
-          } else {
-            // Tentar usar dados em cache primeiro, mas se falhar, buscar novos
-            const cachedData = getUserMusicData();
-            if (cachedData) {
-              console.log("Usando dados em cache (login recente)");
-              setUserData(cachedData);
-              setIsLoading(false);
-            } else {
-              console.log("Cache vazio, buscando dados novos");
-              await fetchUserData(true);
-            }
-          }
+          // SEMPRE buscar dados em tempo real ao inicializar a aplicação
+          // Isso garante que cada login gere uma nova imagem e obtenha dados atualizados
+          await fetchUserData(true);
         } else {
           console.log("Usuário não está logado");
           // Garantir que não existam dados de usuário no estado
@@ -78,23 +60,26 @@ const Index = () => {
         if (loggedIn !== loginStatus) {
           console.log("Status de login alterado:", loggedIn);
           setLoginStatus(loggedIn);
-          if (loggedIn && !userData) {
-            console.log("Usuário logado, mas sem dados. Buscando dados...");
-            await fetchUserData(true);
+          if (loggedIn) {
+            console.log("Usuário logou, buscando dados em tempo real...");
+            await fetchUserData(true); // Forçar atualização
+          } else {
+            // Usuário deslogou, limpar dados
+            setUserData(null);
           }
         }
       } catch (error) {
         console.error("Erro ao verificar status de login:", error);
       }
-    }, 10000); // Verificar a cada 10 segundos
+    }, 5000); // Verificar a cada 5 segundos para maior responsividade
     
     // Limpar o intervalo quando o componente for desmontado
     return () => {
       clearInterval(loginCheckInterval);
     };
-  }, [loginStatus, userData]);
+  }, [loginStatus]);
   
-  const fetchUserData = async (forceRefresh = false) => {
+  const fetchUserData = async (forceRefresh = true) => {
     setIsLoading(true);
     setErrorMessage(null);
     
@@ -107,10 +92,10 @@ const Index = () => {
         return;
       }
       
-      console.log("Fetchando dados reais do usuário da API do Spotify");
-      // User is logged in, fetch real data from Spotify API
-      const data = await getRealUserMusicData();
-      console.log("Dados obtidos com sucesso da API do Spotify");
+      console.log("Fetchando dados em tempo real da API do Spotify");
+      // User is logged in, SEMPRE fetch fresh data from Spotify API
+      const data = await getRealUserMusicData(forceRefresh);
+      console.log("Dados em tempo real obtidos com sucesso da API do Spotify");
       
       // Armazenar timestamp do login atual
       localStorage.setItem("spotify_last_login_time", Date.now().toString());
@@ -119,7 +104,7 @@ const Index = () => {
       saveUserMusicData(data);
       setUserData(data);
       
-      toast.success("Dados musicais obtidos com sucesso!");
+      toast.success("Dados musicais atualizados em tempo real!");
     } catch (error) {
       console.error("Error fetching user data:", error);
       const errorMsg = error instanceof Error 
@@ -129,12 +114,12 @@ const Index = () => {
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
       
-      // Check if we have any data in storage as fallback
+      // Se temos dados em cache, usá-los apenas como fallback em caso de erro
       if (!forceRefresh) {
         const storedData = getUserMusicData();
         if (storedData) {
           setUserData(storedData);
-          toast.info("Usando dados em cache.");
+          toast.info("Usando dados em cache como fallback devido a erro na API.");
         } else {
           // Se não temos dados no cache, resetar o estado
           setUserData(null);

@@ -35,18 +35,16 @@ const PerlinCanvas = ({
       return;
     }
     
-    // Evitar redesenhar se já foi desenhado (para consistência)
-    if (hasDrawnRef.current && !animated) {
-      console.log("Canvas já renderizado, pulando para manter consistência");
-      return;
-    }
+    // Forçar redesenho cada vez que o musicIndex (especialmente o imageSeed) mudar
+    // para garantir que cada login gere uma nova imagem
+    hasDrawnRef.current = false;
     
     // Limpar qualquer animação anterior
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
     
-    console.log(`Gerando imagem com seed: ${musicIndex.imageSeed || 'N/A'}`);
+    console.log(`Gerando imagem em tempo real com seed: ${musicIndex.imageSeed || 'N/A'}`);
     
     try {
       // Generate the perlin noise image based on unique user data
@@ -94,7 +92,7 @@ const PerlinCanvas = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [musicIndex, size, animated, onError]);
+  }, [musicIndex, musicIndex.imageSeed, size, animated, onError]);
   
   // Forçar re-render quando o seed mudar significativamente
   useEffect(() => {
@@ -114,7 +112,7 @@ const PerlinCanvas = ({
           danceability: musicData.danceability,
           acousticness: musicData.acousticness,
           uniqueScore: musicData.uniqueScore,
-          timestamp: Date.now()
+          timestamp: Date.now() // Adicionar timestamp atual para garantir unicidade
         }
       };
       

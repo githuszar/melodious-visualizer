@@ -3,7 +3,7 @@ import { spotifyFetch } from "./spotifyBaseApi";
 
 /**
  * Get user's top artists
- * Improved to get real-time data with configurable cache
+ * Modified to always get real-time data with configurable cache
  */
 export const getTopArtists = async (
   timeRange: TimeRange = "short_term",
@@ -15,13 +15,16 @@ export const getTopArtists = async (
   const cachedData = localStorage.getItem(cacheKey);
   const cacheTime = localStorage.getItem(`${cacheKey}_time`);
   const now = Date.now();
-  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+  // Diminuir tempo de cache para 5 minutos para garantir dados mais atualizados
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
   
   // If we have valid cached data and aren't forcing refresh
   if (!forceRefresh && cachedData && cacheTime && (now - parseInt(cacheTime)) < CACHE_DURATION) {
     console.log("Using cached data for top artists");
     return JSON.parse(cachedData);
   }
+  
+  console.log("Buscando artistas favoritos em tempo real da API do Spotify");
   
   // Otherwise, fetch new data
   const data = await spotifyFetch<TopItemsResponse<SpotifyArtist>>(
@@ -37,7 +40,7 @@ export const getTopArtists = async (
 
 /**
  * Get user's top tracks
- * Improved to get real-time data with configurable cache
+ * Modified to always get real-time data with configurable cache
  */
 export const getTopTracks = async (
   timeRange: TimeRange = "short_term",
@@ -49,13 +52,16 @@ export const getTopTracks = async (
   const cachedData = localStorage.getItem(cacheKey);
   const cacheTime = localStorage.getItem(`${cacheKey}_time`);
   const now = Date.now();
-  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+  // Diminuir tempo de cache para 5 minutos para garantir dados mais atualizados
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
   
   // If we have valid cached data and aren't forcing refresh
   if (!forceRefresh && cachedData && cacheTime && (now - parseInt(cacheTime)) < CACHE_DURATION) {
     console.log("Using cached data for top tracks");
     return JSON.parse(cachedData);
   }
+  
+  console.log("Buscando músicas favoritas em tempo real da API do Spotify");
   
   // Otherwise, fetch new data
   const data = await spotifyFetch<TopItemsResponse<SpotifyTrack>>(

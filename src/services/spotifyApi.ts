@@ -51,10 +51,11 @@ export const getRealUserMusicData = async (forceRefresh: boolean = true): Promis
     
     console.log("Obtendo dados em tempo real do Spotify para o usuário:", userProfile.name);
     
-    // Get top artists and tracks with error handling
+    // Get top artists and tracks with error handling - FORÇANDO ATUALIZAÇÃO EM TEMPO REAL
     let topArtistsResponse;
     try {
-      topArtistsResponse = await getTopArtists("short_term", 50, forceRefresh);
+      // Forçar refresh para garantir dados em tempo real (sempre true)
+      topArtistsResponse = await getTopArtists("short_term", 50, true);
       console.log(`Artistas favoritos obtidos: ${topArtistsResponse.items.length}`);
     } catch (error) {
       console.error("Erro ao obter artistas favoritos:", error);
@@ -63,7 +64,8 @@ export const getRealUserMusicData = async (forceRefresh: boolean = true): Promis
     
     let topTracksResponse;
     try {
-      topTracksResponse = await getTopTracks("short_term", 50, forceRefresh);
+      // Forçar refresh para garantir dados em tempo real (sempre true)
+      topTracksResponse = await getTopTracks("short_term", 50, true);
       console.log(`Músicas favoritas obtidas: ${topTracksResponse.items.length}`);
     } catch (error) {
       console.error("Erro ao obter músicas favoritas:", error);
@@ -104,7 +106,8 @@ export const getRealUserMusicData = async (forceRefresh: boolean = true): Promis
     // Extract top genres
     const topGenres = extractTopGenres(topArtists);
     
-    // Calculate music index based on audio features
+    // Calculate music index based on audio features, usando timestamp do login atual
+    // para garantir unicidade para cada sessão
     const musicIndex = calculateMusicIndex(
       audioFeatures, 
       topGenres, 
@@ -125,7 +128,9 @@ export const getRealUserMusicData = async (forceRefresh: boolean = true): Promis
       topGenres,
       audioFeatures,
       musicIndex,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      // Adicionar timestamp de login para garantir unicidade
+      loginTimestamp: loginTimestamp
     };
     
     // Try to save data for Python script

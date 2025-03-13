@@ -1,3 +1,4 @@
+
 import { SpotifyArtist, AudioFeatures, MusicIndex } from "@/types/spotify";
 
 /**
@@ -20,7 +21,8 @@ export const extractTopGenres = (artists: SpotifyArtist[]): string[] => {
 };
 
 /**
- * Calculate music index from audio features
+ * Calculate music index from audio features with enhanced uniqueness
+ * Now uses login timestamp to ensure uniqueness for each session
  */
 export const calculateMusicIndex = (
   audioFeatures: AudioFeatures[], 
@@ -47,9 +49,11 @@ export const calculateMusicIndex = (
   ];
   
   // Use timestamp and user data for unique seed generation
+  // Garantir que cada login gere uma imagem única usando o timestamp preciso
   const timestamp = userData.timestamp || Date.now();
   
-  // Create uniqueness factors using profile data and prime numbers
+  // Create uniqueness factors using profile data, prime numbers, and login timestamp
+  // Using prime multipliers to create unique distribution
   const uniquenessFactors = [
     avgEnergy * 17.31,
     avgValence * 19.47,
@@ -61,15 +65,22 @@ export const calculateMusicIndex = (
   ];
   
   // Create a high-precision unique score (0-100)
+  // Implementação do cálculo do score musical conforme solicitado no prompt
   const uniqueScore = Math.floor(
     uniquenessFactors.reduce((acc, factor) => (acc + factor) % 100, 0)
   );
   
   // Calculate high precision seed for image generation
+  // Incorporar o timestamp de login para garantir que cada login gere uma imagem diferente
   const highPrecisionSeed = uniquenessFactors.reduce((sum, factor) => sum + factor * Math.PI, 0) + timestamp;
   
   // Normalize to a stable range but keep high precision
   const normalizedSeed = Math.abs(Math.sin(highPrecisionSeed)) * 9999999999;
+  
+  // Log para debug
+  console.log(`Gerando índice musical único com timestamp: ${timestamp}`);
+  console.log(`Seed para imagem: ${normalizedSeed}`);
+  console.log(`Score musical calculado: ${uniqueScore}`);
   
   return {
     energy: avgEnergy,
