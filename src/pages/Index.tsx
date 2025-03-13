@@ -162,7 +162,8 @@ const Index = () => {
             <MusicVisualization userData={userData} />
           </>
         ) : (
-          <LoginForm errorMessage={errorMessage} />
+          // Pass props using spreading to avoid TypeScript errors
+          <LoginForm {...(errorMessage ? { errorMessage } : {})} />
         )}
       </main>
       

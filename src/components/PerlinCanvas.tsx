@@ -8,13 +8,15 @@ interface PerlinCanvasProps {
   size?: number;
   className?: string;
   animated?: boolean;
+  onError?: () => void;
 }
 
 const PerlinCanvas = ({ 
   musicIndex, 
   size = 500, 
   className = "",
-  animated = false
+  animated = false,
+  onError
 }: PerlinCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
@@ -22,10 +24,16 @@ const PerlinCanvas = ({
   
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      onError?.();
+      return;
+    }
     
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      onError?.();
+      return;
+    }
     
     // Evitar redesenhar se já foi desenhado (para consistência)
     if (hasDrawnRef.current && !animated) {
@@ -40,40 +48,45 @@ const PerlinCanvas = ({
     
     console.log(`Gerando imagem com seed: ${musicIndex.imageSeed || 'N/A'}`);
     
-    // Generate the perlin noise image based on unique user data
-    const { draw } = generatePerlinImage(musicIndex, size);
-    
-    // Draw the initial image
-    draw(ctx);
-    hasDrawnRef.current = true;
-    
-    // Se animated for true, adicione animação sutil
-    if (animated) {
-      let offset = 0;
+    try {
+      // Generate the perlin noise image based on unique user data
+      const { draw } = generatePerlinImage(musicIndex, size);
       
-      const animate = () => {
-        offset += 0.002;
+      // Draw the initial image
+      draw(ctx);
+      hasDrawnRef.current = true;
+      
+      // Se animated for true, adicione animação sutil
+      if (animated) {
+        let offset = 0;
         
-        // Create a new modified music index with subtle variations over time
-        const animatedIndex = {
-          ...musicIndex,
-          energy: musicIndex.energy + Math.sin(offset) * 0.05,
-          valence: musicIndex.valence + Math.cos(offset * 0.7) * 0.05
+        const animate = () => {
+          offset += 0.002;
+          
+          // Create a new modified music index with subtle variations over time
+          const animatedIndex = {
+            ...musicIndex,
+            energy: musicIndex.energy + Math.sin(offset) * 0.05,
+            valence: musicIndex.valence + Math.cos(offset * 0.7) * 0.05
+          };
+          
+          // Generate and draw the animated image
+          const { draw: animatedDraw } = generatePerlinImage(animatedIndex, size);
+          animatedDraw(ctx);
+          
+          animationRef.current = requestAnimationFrame(animate);
         };
         
-        // Generate and draw the animated image
-        const { draw: animatedDraw } = generatePerlinImage(animatedIndex, size);
-        animatedDraw(ctx);
-        
-        animationRef.current = requestAnimationFrame(animate);
-      };
+        animate();
+      }
       
-      animate();
-    }
-    
-    // Gerar arquivo para o diretório local se os dados estiverem disponíveis
-    if (musicIndex && musicIndex.uniqueScore !== undefined) {
-      generateLocalImageFile(musicIndex);
+      // Gerar arquivo para o diretório local se os dados estiverem disponíveis
+      if (musicIndex && musicIndex.uniqueScore !== undefined) {
+        generateLocalImageFile(musicIndex);
+      }
+    } catch (error) {
+      console.error("Error generating perlin image:", error);
+      onError?.();
     }
     
     return () => {
@@ -81,7 +94,7 @@ const PerlinCanvas = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [musicIndex, size, animated]);
+  }, [musicIndex, size, animated, onError]);
   
   // Forçar re-render quando o seed mudar significativamente
   useEffect(() => {

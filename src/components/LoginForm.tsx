@@ -1,29 +1,65 @@
 
+import React from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { initiateSpotifyLogin } from "@/services/spotifyAuth";
-import { Headphones, Music } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, SparklesIcon } from "lucide-react";
+import { handleLogin } from "@/services/spotifyAuth";
 
-const LoginForm = () => {
+interface LoginFormProps {
+  errorMessage?: string | null;
+}
+
+const LoginForm: React.FC<LoginFormProps> = ({ errorMessage }) => {
   return (
-    <div className="flex flex-col items-center justify-center h-[80vh] max-w-md mx-auto text-center animate-fade-in">
-      <div className="glass-panel p-8 w-full">
-        <div className="bg-spotify/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Headphones className="h-10 w-10 text-spotify" />
-        </div>
+    <div className="max-w-md mx-auto">
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">Bem-vindo ao Visualizador Musical</CardTitle>
+          <CardDescription>
+            Conecte sua conta do Spotify para ver sua impressão digital musical única
+          </CardDescription>
+        </CardHeader>
         
-        <h1 className="text-3xl font-bold mb-3">Visualize Seu Gosto Musical</h1>
-        <p className="text-muted-foreground mb-8">
-          Conecte sua conta do Spotify para gerar uma representação visual única do seu gosto e preferências musicais.
-        </p>
+        <CardContent className="space-y-4">
+          {errorMessage && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="space-y-2 text-center">
+            <SparklesIcon className="mx-auto h-12 w-12 text-spotify" />
+            <p className="text-sm text-muted-foreground">
+              Descubra sua visualização única baseada em seu perfil musical e gêneros preferidos
+            </p>
+          </div>
+          
+          <Button 
+            className="w-full bg-spotify hover:bg-spotify/90"
+            onClick={handleLogin}
+          >
+            Conectar com Spotify
+          </Button>
+          
+          <Separator />
+          
+          <div className="text-xs text-center text-muted-foreground">
+            <p>
+              Este aplicativo utiliza a API do Spotify para criar uma visualização única do seu perfil musical.
+              Ao conectar, você concede acesso apenas às suas preferências musicais e dados públicos do perfil.
+            </p>
+          </div>
+        </CardContent>
         
-        <Button 
-          onClick={initiateSpotifyLogin}
-          className="spotify-button w-full"
-        >
-          <Music className="mr-2 h-5 w-5" />
-          Conectar com Spotify
-        </Button>
-      </div>
+        <CardFooter>
+          <p className="text-xs text-muted-foreground text-center w-full">
+            Seus dados são armazenados apenas localmente e nunca são compartilhados.
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
