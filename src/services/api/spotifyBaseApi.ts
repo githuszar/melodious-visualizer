@@ -1,6 +1,6 @@
 
 import axios from "axios";
-import { getAccessToken } from "../spotifyAuth";
+import { getAccessToken } from "@/services/spotify";
 
 const BASE_URL = "https://api.spotify.com/v1";
 

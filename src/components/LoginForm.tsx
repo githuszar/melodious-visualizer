@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, SparklesIcon } from "lucide-react";
-import { initiateSpotifyLogin } from "@/services/spotifyAuth";
+import { initiateSpotifyLogin } from "@/services/spotify";
 
 interface LoginFormProps {
   errorMessage?: string | null;

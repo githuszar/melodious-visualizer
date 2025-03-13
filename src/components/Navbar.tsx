@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { initiateSpotifyLogin, isLoggedIn, logout } from "@/services/spotifyAuth";
+import { initiateSpotifyLogin, isLoggedIn, logout } from "@/services/spotify";
 import { Music } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";

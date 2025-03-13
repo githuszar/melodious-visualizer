@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { UserMusicData } from "@/types/spotify";
-import { isLoggedIn } from "@/services/spotifyAuth";
+import { isLoggedIn } from "@/services/spotify";
 import { getRealUserMusicData } from "@/services/spotifyApi";
 import { getUserMusicData, saveUserMusicData, initializeDatabase, clearStoredData } from "@/services/dataStorage";
 import Navbar from "@/components/Navbar";

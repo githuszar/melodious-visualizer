@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { handleSpotifyCallback } from "@/services/spotifyAuth";
+import { handleSpotifyCallback } from "@/services/spotify";
 import { Music } from "lucide-react";
 import { toast } from "sonner";
 
