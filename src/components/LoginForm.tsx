@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, SparklesIcon } from "lucide-react";
-import { handleLogin } from "@/services/spotifyAuth";
+import { initiateSpotifyLogin } from "@/services/spotifyAuth";
 
 interface LoginFormProps {
   errorMessage?: string | null;
@@ -39,7 +39,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ errorMessage }) => {
           
           <Button 
             className="w-full bg-spotify hover:bg-spotify/90"
-            onClick={handleLogin}
+            onClick={initiateSpotifyLogin}
           >
             Conectar com Spotify
           </Button>
