@@ -1,4 +1,3 @@
-
 import axios from "axios";
 import { 
   AUTH_ENDPOINT, 
@@ -8,7 +7,7 @@ import {
   generateRandomString,
   STORAGE_KEYS
 } from "./constants";
-import { getToken, clearTokens } from "./token";
+import { getToken, clearTokens, exchangeCodeForTokens } from "./token";
 
 /**
  * Initiate Spotify login process

@@ -10,7 +10,8 @@ export {
 
 export {
   getAccessToken,
-  refreshToken
+  refreshToken,
+  exchangeCodeForTokens
 } from './token';
 
 export {
