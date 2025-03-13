@@ -4,7 +4,9 @@ import axios from "axios";
 // Spotify API Endpoints & Credentials
 const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
 const TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token";
-const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+// Usar as credenciais diretamente para garantir que estão corretas
+const CLIENT_ID = "e983ab76967541819658cb3126d9f3df";
+const CLIENT_SECRET = "4f4d1a7a3697434db2a0edc2c484f80c";
 // Use a URI de redirecionamento exata que foi configurada no painel do Spotify Developer
 const REDIRECT_URI = "https://melodious-visualizer.lovable.app/callback";
 const SCOPES = "user-read-email user-read-private user-top-read playlist-read-private playlist-read-collaborative user-library-read";
@@ -51,6 +53,7 @@ export const initiateSpotifyLogin = () => {
     });
     
     console.log("URL de redirecionamento: ", REDIRECT_URI);
+    console.log("Client ID: ", CLIENT_ID);
     
     // Redirect to Spotify auth page
     window.location.href = `${AUTH_ENDPOINT}?${params.toString()}`;
@@ -86,7 +89,7 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
         redirect_uri: REDIRECT_URI,
         grant_type: 'authorization_code',
         client_id: CLIENT_ID,
-        client_secret: import.meta.env.VITE_SPOTIFY_CLIENT_SECRET,
+        client_secret: CLIENT_SECRET, // Use a variável CLIENT_SECRET definida acima
       }),
       {
         headers: {
@@ -94,6 +97,8 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
         },
       }
     );
+    
+    console.log("Resposta da API de token:", tokenResponse.status);
     
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
     
@@ -105,6 +110,9 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Erro ao obter tokens:", error);
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Detalhes do erro:", error.response.data);
+    }
     return false;
   }
 };
@@ -158,7 +166,7 @@ export const refreshToken = async (): Promise<void> => {
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
         client_id: CLIENT_ID,
-        client_secret: import.meta.env.VITE_SPOTIFY_CLIENT_SECRET,
+        client_secret: CLIENT_SECRET, // Use a variável CLIENT_SECRET definida acima
       }),
       {
         headers: {
