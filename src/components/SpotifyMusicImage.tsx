@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { saveGeneratedImage, downloadImage, shareImage } from "@/services/dataStorage";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import PerlinCanvas from "./PerlinCanvas";
-import { Share, Download, Music, Database, RefreshCw, ExternalLink } from "lucide-react";
+import { Music, ExternalLink } from "lucide-react";
 import { getAllUserRecords, exportDatabaseToJSON } from "@/services/databaseService";
+import ImageVisualizer from "./ImageVisualizer";
+import MusicIndexStats from "./MusicIndexStats";
+import SocialShareButtons from "./SocialShareButtons";
+import ImageActionButtons from "./ImageActionButtons";
 
 interface SpotifyMusicImageProps {
   userData: UserMusicData;
@@ -209,141 +212,27 @@ const SpotifyMusicImage = ({ userData }: SpotifyMusicImageProps) => {
         
         <Separator className="my-4" />
         
-        <div className="relative overflow-hidden rounded-xl mb-4">
-          {isGenerating ? (
-            <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-800 animate-pulse aspect-square rounded-xl">
-              <RefreshCw className="h-12 w-12 text-gray-400 animate-spin" />
-            </div>
-          ) : userData.musicIndex ? (
-            <PerlinCanvas 
-              musicIndex={userData.musicIndex} 
-              size={400} 
-              className="w-full h-full object-cover"
-              animated={false} // Desativado animação para garantir consistência
-            />
-          ) : (
-            <div className="bg-gray-200 dark:bg-gray-800 animate-pulse aspect-square rounded-xl" />
-          )}
-          
-          {/* Indicador de geração */}
-          {imageGenerated && (
-            <div className="absolute bottom-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-              Gerado em {new Date().toLocaleDateString()}
-            </div>
-          )}
-        </div>
+        <ImageVisualizer 
+          musicIndex={userData.musicIndex} 
+          isGenerating={isGenerating}
+          imageGenerated={imageGenerated}
+        />
         
-        <div className="mt-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Score Musical</span>
-            <span className="text-lg font-bold">{userData.musicIndex.uniqueScore}/100</span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Gêneros Principais</span>
-            <div className="flex flex-wrap justify-end gap-1">
-              {userData.topGenres.slice(0, 3).map((genre, index) => (
-                <span 
-                  key={index} 
-                  className="text-xs bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5"
-                >
-                  {genre}
-                </span>
-              ))}
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Nível de Energia</span>
-            <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-spotify" 
-                style={{ width: `${userData.musicIndex.energy * 100}%` }}
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Humor</span>
-            <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-blue-500" 
-                style={{ width: `${userData.musicIndex.valence * 100}%` }}
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Registros no Banco</span>
-            <span className="text-sm">{totalUsers} usuários</span>
-          </div>
-        </div>
+        <MusicIndexStats 
+          userData={userData}
+          totalUsers={totalUsers}
+        />
         
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <Button 
-            variant="outline" 
-            className="border-gray-200 hover:border-spotify hover:text-spotify transition-all" 
-            onClick={handleShare}
-          >
-            <Share className="mr-2 h-4 w-4" />
-            Compartilhar
-          </Button>
-          <Button 
-            className="spotify-button" 
-            onClick={handleDownload}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Baixar
-          </Button>
-        </div>
+        <ImageActionButtons 
+          onShare={handleShare}
+          onDownload={handleDownload}
+          onExportDatabase={handleExportDatabase}
+          onRegenerate={handleRegenerateImage}
+        />
         
-        {/* Opções de compartilhamento em redes sociais específicas */}
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-gray-200 hover:border-blue-500 hover:text-blue-500"
-            onClick={() => handleShareSocial('twitter')}
-          >
-            Twitter
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-gray-200 hover:border-blue-600 hover:text-blue-600"
-            onClick={() => handleShareSocial('facebook')}
-          >
-            Facebook
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-gray-200 hover:border-green-500 hover:text-green-500"
-            onClick={() => handleShareSocial('whatsapp')}
-          >
-            WhatsApp
-          </Button>
-        </div>
-        
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            className="border-gray-200 hover:border-blue-500 hover:text-blue-500 transition-all"
-            onClick={handleExportDatabase}
-          >
-            <Database className="mr-2 h-4 w-4" />
-            Exportar Dados
-          </Button>
-          
-          <Button
-            variant="outline"
-            className="border-gray-200 hover:border-green-500 hover:text-green-500 transition-all"
-            onClick={handleRegenerateImage}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Regenerar
-          </Button>
-        </div>
+        <SocialShareButtons 
+          onShareSocial={handleShareSocial}
+        />
         
         {/* Link para diretório de imagens geradas (apenas em ambiente de desenvolvimento) */}
         {window.location.hostname === 'localhost' && (
