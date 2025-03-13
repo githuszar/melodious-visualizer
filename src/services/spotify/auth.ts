@@ -15,7 +15,7 @@ import { getToken, clearTokens, exchangeCodeForTokens } from "./token";
  */
 export const initiateSpotifyLogin = () => {
   try {
-    console.log("Iniciando processo de login com Spotify");
+    console.log("[AUTH] Iniciando processo de login com Spotify");
     
     // Clear any existing tokens and data when initiating a new login
     clearAllStoredData();
@@ -34,13 +34,16 @@ export const initiateSpotifyLogin = () => {
       show_dialog: "true" // Forçar diálogo de login para sempre gerar nova autenticação
     });
     
-    console.log("URL de redirecionamento: ", REDIRECT_URI);
-    console.log("Client ID: ", CLIENT_ID);
+    console.log("[AUTH] URL de redirecionamento configurada:", REDIRECT_URI);
+    console.log("[AUTH] Client ID utilizado:", CLIENT_ID);
+    console.log("[AUTH] Escopos solicitados:", SCOPES);
     
     // Redirect to Spotify auth page
-    window.location.href = `${AUTH_ENDPOINT}?${params.toString()}`;
+    const authUrl = `${AUTH_ENDPOINT}?${params.toString()}`;
+    console.log("[AUTH] Redirecionando para URL de autenticação:", authUrl);
+    window.location.href = authUrl;
   } catch (error) {
-    console.error("Erro ao iniciar login:", error);
+    console.error("[AUTH] Erro ao iniciar login:", error);
     throw error;
   }
 };
@@ -50,24 +53,52 @@ export const initiateSpotifyLogin = () => {
  */
 export const handleSpotifyCallback = async (): Promise<boolean> => {
   try {
-    console.log("Iniciando callback do Spotify...");
+    console.log("[CALLBACK] Iniciando processamento do callback do Spotify...");
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     const storedState = localStorage.getItem(STORAGE_KEYS.AUTH_STATE);
     
-    if (!code || !state || state !== storedState) {
-      console.error("Erro na autenticação: código, estado inválido ou CSRF");
+    console.log("[CALLBACK] Parâmetros recebidos:");
+    console.log("[CALLBACK] - Código de autorização presente:", !!code);
+    console.log("[CALLBACK] - Estado presente:", !!state);
+    console.log("[CALLBACK] - Estado armazenado presente:", !!storedState);
+    
+    if (!code) {
+      console.error("[CALLBACK] Erro na autenticação: código de autorização ausente");
       return false;
     }
     
+    if (!state) {
+      console.error("[CALLBACK] Erro na autenticação: estado ausente");
+      return false;
+    }
+    
+    if (!storedState) {
+      console.error("[CALLBACK] Erro na autenticação: estado armazenado ausente");
+      return false;
+    }
+    
+    if (state !== storedState) {
+      console.error("[CALLBACK] Erro na autenticação: CSRF - estados não correspondem");
+      console.error("[CALLBACK] Estado recebido:", state);
+      console.error("[CALLBACK] Estado armazenado:", storedState);
+      return false;
+    }
+    
+    console.log("[CALLBACK] Validação de estado bem-sucedida, removendo estado armazenado");
     localStorage.removeItem(STORAGE_KEYS.AUTH_STATE);
     
     // Exchange code for tokens - this function is in token.ts
+    console.log("[CALLBACK] Trocando código por tokens...");
     const success = await exchangeCodeForTokens(code);
+    console.log("[CALLBACK] Resultado da troca de código por tokens:", success ? "Sucesso" : "Falha");
     return success;
   } catch (error) {
-    console.error("Erro ao processar callback:", error);
+    console.error("[CALLBACK] Erro ao processar callback:", error);
+    if (error instanceof Error) {
+      console.error("[CALLBACK] Mensagem de erro:", error.message);
+    }
     return false;
   }
 };
@@ -77,7 +108,7 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
  */
 export const logout = async (): Promise<void> => {
   clearAllStoredData();
-  console.log("Usuário deslogado");
+  console.log("[AUTH] Usuário deslogado, todos os dados removidos");
 };
 
 /**
@@ -86,9 +117,11 @@ export const logout = async (): Promise<void> => {
 export const isLoggedIn = async (): Promise<boolean> => {
   try {
     const token = await getToken();
-    return token !== null;
+    const isLogged = token !== null;
+    console.log("[AUTH] Verificação de login:", isLogged ? "Usuário logado" : "Usuário não logado");
+    return isLogged;
   } catch (error) {
-    console.error("Erro ao verificar status de login:", error);
+    console.error("[AUTH] Erro ao verificar status de login:", error);
     return false;
   }
 };
@@ -97,7 +130,9 @@ export const isLoggedIn = async (): Promise<boolean> => {
  * Clear all Spotify-related data from local storage
  */
 export const clearAllStoredData = (): void => {
+  console.log("[AUTH] Limpando todos os dados armazenados");
   Object.values(STORAGE_KEYS).forEach(key => {
     localStorage.removeItem(key);
+    console.log(`[AUTH] Dado removido: ${key}`);
   });
 };

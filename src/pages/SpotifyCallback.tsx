@@ -13,25 +13,54 @@ const SpotifyCallback = () => {
   useEffect(() => {
     const processCallback = async () => {
       try {
-        console.log("Processando callback do Spotify...");
+        console.log("[SpotifyCallback] Iniciando processamento de callback");
+        console.log("[SpotifyCallback] URL completa:", window.location.href);
+        
+        // Extrair e logar parâmetros da URL para debug
+        const params = new URLSearchParams(window.location.search);
+        console.log("[SpotifyCallback] Parâmetros da URL:");
+        console.log("[SpotifyCallback] - code presente:", !!params.get('code'));
+        console.log("[SpotifyCallback] - state presente:", !!params.get('state'));
+        console.log("[SpotifyCallback] - error:", params.get('error') || "nenhum");
+        
+        if (params.get('error')) {
+          console.error("[SpotifyCallback] Erro retornado pelo Spotify:", params.get('error'));
+          setError(`Erro retornado pelo Spotify: ${params.get('error')}`);
+          setTimeout(() => navigate("/"), 3000);
+          return;
+        }
+        
         const success = await handleSpotifyCallback();
         
         if (success) {
-          console.log("Autenticação bem-sucedida, redirecionando para home...");
+          console.log("[SpotifyCallback] Autenticação bem-sucedida, redirecionando para home...");
           toast.success("Autenticação com Spotify concluída!");
           // Adicionar pequeno delay antes do redirecionamento para garantir que os dados sejam salvos
           setTimeout(() => {
-            console.log("Redirecionando para a página inicial após autenticação bem-sucedida");
+            console.log("[SpotifyCallback] Redirecionando para a página inicial após autenticação bem-sucedida");
             navigate("/");
           }, 1500);
         } else {
-          console.error("Falha na autenticação do Spotify");
+          console.error("[SpotifyCallback] Falha na autenticação do Spotify");
           setError("Falha na autenticação. Por favor, tente novamente.");
+          
+          // Verificar local storage para possíveis pistas
+          console.log("[SpotifyCallback] Verificando localStorage para debug:");
+          const storedState = localStorage.getItem("spotify_auth_state");
+          const token = localStorage.getItem("spotify_token");
+          console.log("[SpotifyCallback] - Estado armazenado presente:", !!storedState);
+          console.log("[SpotifyCallback] - Token armazenado presente:", !!token);
+          
           setTimeout(() => navigate("/"), 3000);
         }
       } catch (err) {
-        console.error("Erro ao processar callback:", err);
-        setError("Ocorreu um erro inesperado. Por favor, tente novamente.");
+        console.error("[SpotifyCallback] Erro ao processar callback:", err);
+        if (err instanceof Error) {
+          console.error("[SpotifyCallback] Mensagem de erro:", err.message);
+          setError(`Ocorreu um erro inesperado: ${err.message}`);
+        } else {
+          setError("Ocorreu um erro inesperado. Por favor, tente novamente.");
+        }
         setTimeout(() => navigate("/"), 3000);
       } finally {
         setIsProcessing(false);

@@ -1,3 +1,4 @@
+
 import axios from "axios";
 import { 
   TOKEN_ENDPOINT, 
@@ -12,15 +13,29 @@ import {
  */
 export const exchangeCodeForTokens = async (code: string): Promise<boolean> => {
   try {
+    console.log("[TOKEN] Iniciando troca de código por tokens");
+    console.log("[TOKEN] Usando REDIRECT_URI:", REDIRECT_URI);
+    
+    const params = new URLSearchParams({
+      code: code,
+      redirect_uri: REDIRECT_URI,
+      grant_type: 'authorization_code',
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+    });
+    
+    console.log("[TOKEN] Enviando requisição para:", TOKEN_ENDPOINT);
+    console.log("[TOKEN] Com parâmetros:", {
+      code: "REDACTED", // Por segurança, não logamos o código completo
+      redirect_uri: REDIRECT_URI,
+      grant_type: 'authorization_code',
+      client_id: CLIENT_ID,
+      client_secret: "REDACTED" // Por segurança, não logamos o segredo
+    });
+    
     const tokenResponse = await axios.post(
       TOKEN_ENDPOINT,
-      new URLSearchParams({
-        code: code,
-        redirect_uri: REDIRECT_URI,
-        grant_type: 'authorization_code',
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-      }),
+      params,
       {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -28,20 +43,52 @@ export const exchangeCodeForTokens = async (code: string): Promise<boolean> => {
       }
     );
     
-    console.log("Resposta da API de token:", tokenResponse.status);
+    console.log("[TOKEN] Resposta da API de token - Status:", tokenResponse.status);
+    
+    if (tokenResponse.data) {
+      console.log("[TOKEN] Tokens recebidos com sucesso");
+      console.log("[TOKEN] Dados recebidos:", {
+        access_token: tokenResponse.data.access_token ? "PRESENTE" : "AUSENTE",
+        refresh_token: tokenResponse.data.refresh_token ? "PRESENTE" : "AUSENTE",
+        expires_in: tokenResponse.data.expires_in
+      });
+    }
     
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
+    
+    if (!access_token) {
+      console.error("[TOKEN] Erro: access_token ausente na resposta");
+      return false;
+    }
+    
+    if (!refresh_token) {
+      console.error("[TOKEN] Erro: refresh_token ausente na resposta");
+      return false;
+    }
+    
+    if (!expires_in) {
+      console.error("[TOKEN] Erro: expires_in ausente na resposta");
+      return false;
+    }
     
     localStorage.setItem(STORAGE_KEYS.TOKEN, access_token);
     localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh_token);
     localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, (Date.now() + expires_in * 1000).toString());
     
-    console.log("Autenticação bem-sucedida, tokens salvos");
+    console.log("[TOKEN] Autenticação bem-sucedida, tokens salvos");
+    console.log("[TOKEN] Token expira em:", new Date(Date.now() + expires_in * 1000).toISOString());
     return true;
   } catch (error) {
-    console.error("Erro ao obter tokens:", error);
+    console.error("[TOKEN] Erro ao obter tokens:", error);
     if (axios.isAxiosError(error) && error.response) {
-      console.error("Detalhes do erro:", error.response.data);
+      console.error("[TOKEN] Status do erro:", error.response.status);
+      console.error("[TOKEN] Detalhes do erro:", error.response.data);
+      
+      if (error.response.status === 400) {
+        console.error("[TOKEN] Possível erro nos parâmetros da requisição");
+        console.error("[TOKEN] REDIRECT_URI utilizado:", REDIRECT_URI);
+        console.error("[TOKEN] CLIENT_ID utilizado:", CLIENT_ID);
+      }
     }
     return false;
   }
@@ -52,10 +99,11 @@ export const exchangeCodeForTokens = async (code: string): Promise<boolean> => {
  */
 export const refreshToken = async (): Promise<void> => {
   try {
+    console.log("[TOKEN] Iniciando renovação de token");
     const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     
     if (!refreshToken) {
-      console.error("Refresh token não encontrado");
+      console.error("[TOKEN] Refresh token não encontrado");
       throw new Error("Refresh token not found");
     }
     
@@ -79,9 +127,10 @@ export const refreshToken = async (): Promise<void> => {
     localStorage.setItem(STORAGE_KEYS.TOKEN, access_token);
     localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, (Date.now() + expires_in * 1000).toString());
     
-    console.log("Token renovado com sucesso");
+    console.log("[TOKEN] Token renovado com sucesso");
+    console.log("[TOKEN] Novo token expira em:", new Date(Date.now() + expires_in * 1000).toISOString());
   } catch (error) {
-    console.error("Erro ao renovar token:", error);
+    console.error("[TOKEN] Erro ao renovar token:", error);
     throw error;
   }
 };
@@ -94,18 +143,18 @@ export const getToken = async (): Promise<string | null> => {
   const expiryTime = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
   
   if (!token || !expiryTime) {
-    console.log("Não autenticado: token ou tempo de expiração ausentes");
+    console.log("[TOKEN] Não autenticado: token ou tempo de expiração ausentes");
     return null;
   }
   
   if (Date.now() >= parseInt(expiryTime, 10)) {
-    console.log("Token expirado, tentando renovar");
+    console.log("[TOKEN] Token expirado, tentando renovar");
     
     try {
       await refreshToken();
       return localStorage.getItem(STORAGE_KEYS.TOKEN);
     } catch (error) {
-      console.error("Falha ao renovar token:", error);
+      console.error("[TOKEN] Falha ao renovar token:", error);
       clearTokens();
       return null;
     }
@@ -125,6 +174,7 @@ export const getAccessToken = async (): Promise<string | null> => {
  * Clear tokens from local storage
  */
 export const clearTokens = (): void => {
+  console.log("[TOKEN] Limpando tokens");
   localStorage.removeItem(STORAGE_KEYS.TOKEN);
   localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
