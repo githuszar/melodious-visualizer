@@ -26,11 +26,11 @@ export const exchangeCodeForTokens = async (code: string): Promise<boolean> => {
     
     console.log("[TOKEN] Enviando requisição para:", TOKEN_ENDPOINT);
     console.log("[TOKEN] Com parâmetros:", {
-      code: "REDACTED", // Por segurança, não logamos o código completo
+      code: code.substring(0, 5) + "..." + code.substring(code.length - 5), // Log parte do código para debug
       redirect_uri: REDIRECT_URI,
       grant_type: 'authorization_code',
       client_id: CLIENT_ID,
-      client_secret: "REDACTED" // Por segurança, não logamos o segredo
+      client_secret: CLIENT_SECRET.substring(0, 3) + "..." + CLIENT_SECRET.substring(CLIENT_SECRET.length - 3) // Log parte do segredo
     });
     
     const tokenResponse = await axios.post(
@@ -48,9 +48,10 @@ export const exchangeCodeForTokens = async (code: string): Promise<boolean> => {
     if (tokenResponse.data) {
       console.log("[TOKEN] Tokens recebidos com sucesso");
       console.log("[TOKEN] Dados recebidos:", {
-        access_token: tokenResponse.data.access_token ? "PRESENTE" : "AUSENTE",
+        access_token: tokenResponse.data.access_token ? "PRESENTE (" + tokenResponse.data.access_token.substring(0, 5) + "...)" : "AUSENTE",
         refresh_token: tokenResponse.data.refresh_token ? "PRESENTE" : "AUSENTE",
-        expires_in: tokenResponse.data.expires_in
+        expires_in: tokenResponse.data.expires_in,
+        token_type: tokenResponse.data.token_type
       });
     }
     
@@ -77,12 +78,21 @@ export const exchangeCodeForTokens = async (code: string): Promise<boolean> => {
     
     console.log("[TOKEN] Autenticação bem-sucedida, tokens salvos");
     console.log("[TOKEN] Token expira em:", new Date(Date.now() + expires_in * 1000).toISOString());
+    
+    // Teste de validação do token imediatamente após salvá-lo
+    try {
+      const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      console.log("[TOKEN] Validação do token salvo:", savedToken ? "Presente com " + savedToken.length + " caracteres" : "AUSENTE");
+    } catch (validationError) {
+      console.error("[TOKEN] Erro ao validar token salvo:", validationError);
+    }
+    
     return true;
   } catch (error) {
     console.error("[TOKEN] Erro ao obter tokens:", error);
     if (axios.isAxiosError(error) && error.response) {
       console.error("[TOKEN] Status do erro:", error.response.status);
-      console.error("[TOKEN] Detalhes do erro:", error.response.data);
+      console.error("[TOKEN] Detalhes do erro:", JSON.stringify(error.response.data));
       
       if (error.response.status === 400) {
         console.error("[TOKEN] Possível erro nos parâmetros da requisição");
@@ -139,35 +149,58 @@ export const refreshToken = async (): Promise<void> => {
  * Get current access token, refreshing if necessary
  */
 export const getToken = async (): Promise<string | null> => {
-  const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
-  const expiryTime = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
-  
-  if (!token || !expiryTime) {
-    console.log("[TOKEN] Não autenticado: token ou tempo de expiração ausentes");
-    return null;
-  }
-  
-  if (Date.now() >= parseInt(expiryTime, 10)) {
-    console.log("[TOKEN] Token expirado, tentando renovar");
+  try {
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    const expiryTime = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
     
-    try {
-      await refreshToken();
-      return localStorage.getItem(STORAGE_KEYS.TOKEN);
-    } catch (error) {
-      console.error("[TOKEN] Falha ao renovar token:", error);
-      clearTokens();
+    console.log("[TOKEN] Obtendo token atual - Presente:", !!token);
+    
+    if (!token || !expiryTime) {
+      console.log("[TOKEN] Não autenticado: token ou tempo de expiração ausentes");
       return null;
     }
+    
+    const expiryTimestamp = parseInt(expiryTime, 10);
+    const currentTime = Date.now();
+    const timeRemaining = expiryTimestamp - currentTime;
+    
+    console.log(`[TOKEN] Tempo restante do token: ${Math.floor(timeRemaining / 1000)}s (expira em ${new Date(expiryTimestamp).toISOString()})`);
+    
+    if (currentTime >= expiryTimestamp) {
+      console.log("[TOKEN] Token expirado, tentando renovar");
+      
+      try {
+        await refreshToken();
+        const newToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+        console.log("[TOKEN] Token renovado com sucesso:", newToken ? "PRESENTE" : "AUSENTE");
+        return newToken;
+      } catch (error) {
+        console.error("[TOKEN] Falha ao renovar token:", error);
+        clearTokens();
+        return null;
+      }
+    }
+    
+    return token;
+  } catch (error) {
+    console.error("[TOKEN] Erro ao obter token:", error);
+    return null;
   }
-  
-  return token;
 };
 
 /**
  * Get current access token without refresh attempts
  */
 export const getAccessToken = async (): Promise<string | null> => {
-  return getToken();
+  const token = await getToken();
+  
+  if (token) {
+    console.log("[TOKEN] Token obtido com sucesso:", token.substring(0, 5) + "..." + token.substring(token.length - 5));
+  } else {
+    console.error("[TOKEN] Falha ao obter token de acesso");
+  }
+  
+  return token;
 };
 
 /**

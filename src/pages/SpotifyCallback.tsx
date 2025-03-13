@@ -20,6 +20,11 @@ const SpotifyCallback = () => {
         const params = new URLSearchParams(window.location.search);
         console.log("[SpotifyCallback] Parâmetros da URL:");
         console.log("[SpotifyCallback] - code presente:", !!params.get('code'));
+        if (params.get('code')) {
+          const code = params.get('code')!;
+          console.log("[SpotifyCallback] - Tamanho do código:", code.length);
+          console.log("[SpotifyCallback] - Amostra do código:", code.substring(0, 5) + "..." + code.substring(code.length - 5));
+        }
         console.log("[SpotifyCallback] - state presente:", !!params.get('state'));
         console.log("[SpotifyCallback] - error:", params.get('error') || "nenhum");
         
@@ -30,7 +35,23 @@ const SpotifyCallback = () => {
           return;
         }
         
+        // Verificar estado do localStorage antes de processar o callback
+        console.log("[SpotifyCallback] Estado do localStorage antes do processamento:");
+        const storedState = localStorage.getItem("spotify_auth_state");
+        console.log("[SpotifyCallback] - Estado armazenado presente:", !!storedState);
+        
         const success = await handleSpotifyCallback();
+        
+        // Verificar estado do localStorage após processar o callback
+        console.log("[SpotifyCallback] Estado do localStorage após processamento:");
+        const token = localStorage.getItem("spotify_token");
+        const tokenExpiry = localStorage.getItem("spotify_token_expiry");
+        console.log("[SpotifyCallback] - Token presente:", !!token);
+        console.log("[SpotifyCallback] - Expiração do token presente:", !!tokenExpiry);
+        if (tokenExpiry) {
+          const expiryDate = new Date(parseInt(tokenExpiry));
+          console.log("[SpotifyCallback] - Token expira em:", expiryDate.toISOString());
+        }
         
         if (success) {
           console.log("[SpotifyCallback] Autenticação bem-sucedida, redirecionando para home...");
@@ -42,14 +63,20 @@ const SpotifyCallback = () => {
           }, 1500);
         } else {
           console.error("[SpotifyCallback] Falha na autenticação do Spotify");
-          setError("Falha na autenticação. Por favor, tente novamente.");
           
-          // Verificar local storage para possíveis pistas
+          // Verificar local storage para possíveis pistas sobre a falha
           console.log("[SpotifyCallback] Verificando localStorage para debug:");
-          const storedState = localStorage.getItem("spotify_auth_state");
-          const token = localStorage.getItem("spotify_token");
           console.log("[SpotifyCallback] - Estado armazenado presente:", !!storedState);
           console.log("[SpotifyCallback] - Token armazenado presente:", !!token);
+          
+          // Tentar identificar o tipo de falha
+          if (!storedState && params.get('state')) {
+            setError("Falha na autenticação: estado de sessão perdido. Por favor, tente novamente e não atualize a página durante o processo.");
+          } else if (params.get('code') && !token) {
+            setError("Falha na obtenção de token do Spotify. Por favor, verifique suas credenciais e tente novamente.");
+          } else {
+            setError("Falha na autenticação. Por favor, tente novamente.");
+          }
           
           setTimeout(() => navigate("/"), 3000);
         }

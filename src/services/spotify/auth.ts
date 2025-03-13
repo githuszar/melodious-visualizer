@@ -61,6 +61,10 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
     
     console.log("[CALLBACK] Parâmetros recebidos:");
     console.log("[CALLBACK] - Código de autorização presente:", !!code);
+    if (code) {
+      console.log("[CALLBACK] - Tamanho do código:", code.length);
+      console.log("[CALLBACK] - Amostra do código:", code.substring(0, 5) + "..." + code.substring(code.length - 5));
+    }
     console.log("[CALLBACK] - Estado presente:", !!state);
     console.log("[CALLBACK] - Estado armazenado presente:", !!storedState);
     
@@ -93,6 +97,18 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
     console.log("[CALLBACK] Trocando código por tokens...");
     const success = await exchangeCodeForTokens(code);
     console.log("[CALLBACK] Resultado da troca de código por tokens:", success ? "Sucesso" : "Falha");
+    
+    // Verificar se o token está realmente disponível após a troca
+    if (success) {
+      const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      console.log("[CALLBACK] Token após troca:", token ? "PRESENTE" : "AUSENTE");
+      
+      if (!token) {
+        console.error("[CALLBACK] Token não foi salvo corretamente após troca bem-sucedida");
+        return false;
+      }
+    }
+    
     return success;
   } catch (error) {
     console.error("[CALLBACK] Erro ao processar callback:", error);
