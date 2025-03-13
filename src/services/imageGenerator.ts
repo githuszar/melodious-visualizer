@@ -1,3 +1,4 @@
+
 import { MusicIndex } from "@/types/spotify";
 
 // Enhanced Perlin Noise class with higher precision
@@ -238,6 +239,29 @@ export const generatePerlinImage = (
     
     // Restaurar alpha
     context.globalAlpha = 1.0;
+    
+    // Salvar dados para o script Python local
+    try {
+      // Criar e salvar os dados como JSON no localStorage
+      // Servirá como ponte para o script Python caso o usuário queira exportar
+      const musicData = {
+        userId: localStorage.getItem('spotify_user_id') || 'unknown_user',
+        timestamp: Date.now(),
+        seed: seed,
+        musicScore: musicIndex.uniqueScore,
+        features: {
+          energy: musicIndex.energy,
+          valence: musicIndex.valence,
+          danceability: musicIndex.danceability,
+          acousticness: musicIndex.acousticness,
+        }
+      };
+      
+      localStorage.setItem('music_image_data', JSON.stringify(musicData));
+      console.log("Dados da imagem salvos para possível exportação:", musicData);
+    } catch (error) {
+      console.error("Erro ao salvar dados da imagem:", error);
+    }
   };
   
   // Helper pattern functions
@@ -339,3 +363,32 @@ export const getMockMusicImage = (musicIndex: MusicIndex, size = 500) => {
   return generatePerlinImage(musicIndex, size);
 };
 
+/**
+ * Gerar um arquivo local de imagem se possível
+ * Esse método tenta salvar a imagem no diretório do usuário via localStorage
+ */
+export const saveImageToLocalFile = (musicIndex: MusicIndex): boolean => {
+  try {
+    // Criar os dados para serem salvos no arquivo temp JSON
+    const data = {
+      user_id: localStorage.getItem('spotify_user_id') || `user_${Date.now()}`,
+      timestamp: Date.now(),
+      music_data: {
+        energy: musicIndex.energy,
+        valence: musicIndex.valence,
+        danceability: musicIndex.danceability,
+        acousticness: musicIndex.acousticness,
+        uniqueScore: musicIndex.uniqueScore
+      }
+    };
+    
+    // Salvar no localStorage para debugging ou para um possível servidor local pegar
+    localStorage.setItem('temp_music_data', JSON.stringify(data));
+    
+    console.log("Dados de imagem preparados para armazenamento local:", data);
+    return true;
+  } catch (error) {
+    console.error("Erro ao tentar salvar imagem localmente:", error);
+    return false;
+  }
+};

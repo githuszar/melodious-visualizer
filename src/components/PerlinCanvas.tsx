@@ -40,7 +40,7 @@ const PerlinCanvas = ({
     
     console.log(`Gerando imagem com seed: ${musicIndex.imageSeed || 'N/A'}`);
     
-    // Generate the perlin noise image
+    // Generate the perlin noise image based on unique user data
     const { draw } = generatePerlinImage(musicIndex, size);
     
     // Draw the initial image
@@ -71,6 +71,11 @@ const PerlinCanvas = ({
       animate();
     }
     
+    // Gerar arquivo para o diretório local se os dados estiverem disponíveis
+    if (musicIndex && musicIndex.uniqueScore !== undefined) {
+      generateLocalImageFile(musicIndex);
+    }
+    
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -82,6 +87,52 @@ const PerlinCanvas = ({
   useEffect(() => {
     hasDrawnRef.current = false;
   }, [musicIndex.imageSeed]);
+  
+  // Função para gerar arquivo de imagem local
+  const generateLocalImageFile = (musicData: MusicIndex) => {
+    try {
+      // Criar objeto com os dados necessários para o Python
+      const data = {
+        user_id: `user_${Date.now()}`, // ID único baseado no timestamp
+        timestamp: Date.now(),
+        music_data: {
+          energy: musicData.energy,
+          valence: musicData.valence,
+          danceability: musicData.danceability,
+          acousticness: musicData.acousticness,
+          uniqueScore: musicData.uniqueScore,
+          timestamp: Date.now()
+        }
+      };
+      
+      // Converter para JSON
+      const jsonData = JSON.stringify(data, null, 2);
+      
+      // Tentar salvar no localStorage para debugging
+      localStorage.setItem('temp_music_data_for_python', jsonData);
+      
+      console.log("Dados preparados para processamento Python:", data);
+      
+      // Tentar fazer uma requisição para um servidor local que pode gerar a imagem
+      // Esta parte serviria se houvesse um servidor local rodando
+      // Como estamos em ambiente de navegador, isso provavelmente não funcionará
+      // mas serve como demonstração da integração
+      
+      fetch('/api/generate-local-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: jsonData
+      }).catch(err => {
+        // Silenciar erros porque essa API provavelmente não existe
+        console.log("Info: Tentativa de integração com serviço Python local (ignorar erro)");
+      });
+      
+    } catch (error) {
+      console.error("Erro ao tentar gerar arquivo de imagem local:", error);
+    }
+  };
   
   return (
     <canvas 

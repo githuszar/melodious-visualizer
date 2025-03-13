@@ -12,6 +12,8 @@ import {
   UserProfile
 } from "@/types/spotify";
 import { getAccessToken } from "./spotifyAuth";
+import { saveGeneratedImage, generateLocalPythonData } from "./dataStorage";
+import { saveImageToLocalFile } from "./imageGenerator";
 import axios from "axios";
 
 const BASE_URL = "https://api.spotify.com/v1";
@@ -65,26 +67,70 @@ export const getUserProfile = async (): Promise<UserProfile> => {
 
 /**
  * Get user's top artists
+ * Melhorado para obter dados em tempo real, com cache configurável
  */
 export const getTopArtists = async (
-  timeRange: TimeRange = "medium_term",
-  limit: number = 20
+  timeRange: TimeRange = "short_term", // Preferir short_term para dados mais recentes
+  limit: number = 50, // Aumentado para mais dados
+  forceRefresh: boolean = true // Forçar atualização por padrão
 ): Promise<TopItemsResponse<SpotifyArtist>> => {
-  return spotifyFetch<TopItemsResponse<SpotifyArtist>>(
+  // Verificar se temos dados em cache e se podemos usá-los
+  const cacheKey = `top_artists_${timeRange}_${limit}`;
+  const cachedData = localStorage.getItem(cacheKey);
+  const cacheTime = localStorage.getItem(`${cacheKey}_time`);
+  const now = Date.now();
+  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutos
+  
+  // Se temos dados em cache válidos e não estamos forçando atualização
+  if (!forceRefresh && cachedData && cacheTime && (now - parseInt(cacheTime)) < CACHE_DURATION) {
+    console.log("Usando dados em cache para top artists");
+    return JSON.parse(cachedData);
+  }
+  
+  // Caso contrário, buscar novos dados
+  const data = await spotifyFetch<TopItemsResponse<SpotifyArtist>>(
     `/me/top/artists?time_range=${timeRange}&limit=${limit}`
   );
+  
+  // Salvar em cache para uso futuro
+  localStorage.setItem(cacheKey, JSON.stringify(data));
+  localStorage.setItem(`${cacheKey}_time`, now.toString());
+  
+  return data;
 };
 
 /**
  * Get user's top tracks
+ * Melhorado para obter dados em tempo real, com cache configurável
  */
 export const getTopTracks = async (
-  timeRange: TimeRange = "medium_term",
-  limit: number = 20
+  timeRange: TimeRange = "short_term", // Preferir short_term para dados mais recentes
+  limit: number = 50, // Aumentado para mais dados
+  forceRefresh: boolean = true // Forçar atualização por padrão
 ): Promise<TopItemsResponse<SpotifyTrack>> => {
-  return spotifyFetch<TopItemsResponse<SpotifyTrack>>(
+  // Verificar se temos dados em cache e se podemos usá-los
+  const cacheKey = `top_tracks_${timeRange}_${limit}`;
+  const cachedData = localStorage.getItem(cacheKey);
+  const cacheTime = localStorage.getItem(`${cacheKey}_time`);
+  const now = Date.now();
+  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutos
+  
+  // Se temos dados em cache válidos e não estamos forçando atualização
+  if (!forceRefresh && cachedData && cacheTime && (now - parseInt(cacheTime)) < CACHE_DURATION) {
+    console.log("Usando dados em cache para top tracks");
+    return JSON.parse(cachedData);
+  }
+  
+  // Caso contrário, buscar novos dados
+  const data = await spotifyFetch<TopItemsResponse<SpotifyTrack>>(
     `/me/top/tracks?time_range=${timeRange}&limit=${limit}`
   );
+  
+  // Salvar em cache para uso futuro
+  localStorage.setItem(cacheKey, JSON.stringify(data));
+  localStorage.setItem(`${cacheKey}_time`, now.toString());
+  
+  return data;
 };
 
 /**
@@ -150,9 +196,14 @@ export const extractTopGenres = (artists: SpotifyArtist[]): string[] => {
 
 /**
  * Get real user music data from Spotify API
+ * Melhorada para sempre buscar dados frescos e garantir unicidade de imagem
  */
-export const getRealUserMusicData = async (): Promise<UserMusicData> => {
+export const getRealUserMusicData = async (forceRefresh: boolean = true): Promise<UserMusicData> => {
   try {
+    // Obter timestamp de login único para garantir unicidade da imagem
+    const loginTimestamp = Date.now();
+    console.log(`Inicializando coleta de dados - Login ID: ${loginTimestamp}`);
+    
     // Get user profile
     const user = await getCurrentUser();
     const userProfile = await getUserProfile();
@@ -160,8 +211,8 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
     console.log("Obtendo dados em tempo real do Spotify para o usuário:", userProfile.name);
     
     // Get top artists and tracks - forçar termo curto para dados mais recentes
-    const topArtistsResponse = await getTopArtists("short_term", 50);
-    const topTracksResponse = await getTopTracks("short_term", 50);
+    const topArtistsResponse = await getTopArtists("short_term", 50, forceRefresh);
+    const topTracksResponse = await getTopTracks("short_term", 50, forceRefresh);
     
     // Get user playlists - limite aumentado para mais dados
     const userPlaylistsResponse = await getUserPlaylists(20);
@@ -201,11 +252,10 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
       `hsl(${Math.floor(30 + (150 * avgAcousticness))}, ${Math.floor(60 + avgEnergy * 30)}%, ${Math.floor(40 + avgValence * 30)}%)`
     ];
     
-    // Gerar um timestamp atual para garantir unicidade a cada login
-    const timestamp = Date.now();
+    // Usar o loginTimestamp para garantir unicidade a cada login
+    const timestamp = loginTimestamp;
     
-    // Create a much more unique score with high precision
-    // Using multiple features and prime numbers to increase uniqueness
+    // Criar fatores de unicidade usando dados do perfil e números primos
     const uniquenessFactors = [
       avgEnergy * 17.31,
       avgValence * 19.47,
@@ -240,21 +290,40 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
     console.log("Score único gerado:", uniqueScore);
     console.log("Seed única para imagem:", normalizedSeed);
     
-    // Tentativa de salvar dados no diretório local se estiver no ambiente certo
+    // Criar o objeto musicIndex
+    const musicIndex = {
+      energy: avgEnergy,
+      valence: avgValence,
+      danceability: avgDanceability,
+      acousticness: avgAcousticness,
+      topGenres,
+      uniqueScore,
+      colorPalette,
+      // Add the high precision seed for image generation
+      imageSeed: normalizedSeed
+    };
+    
+    // Tentativa de salvar dados para o script Python
     try {
-      // Gerar dados para o arquivo Python local
-      generateLocalMusicImageData(user.id, {
-        energy: avgEnergy,
-        valence: avgValence,
-        danceability: avgDanceability,
-        acousticness: avgAcousticness,
-        uniqueScore,
-        timestamp
+      // Tentar salvar a imagem localmente via localStorage temporário
+      saveImageToLocalFile(musicIndex);
+      
+      // Tentativa de gerar arquivo temporário para o Python
+      generateLocalPythonData({
+        userId: user.id,
+        userProfile,
+        topArtists: [],
+        topTracks: [],
+        userPlaylists: [],
+        topGenres,
+        musicIndex,
+        lastUpdated: new Date().toISOString()
       });
     } catch (localSaveError) {
       console.warn("Não foi possível salvar dados localmente:", localSaveError);
     }
     
+    // Retornar os dados completos
     return {
       userId: user.id,
       userProfile,
@@ -263,51 +332,11 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
       userPlaylists,
       topGenres,
       audioFeatures,
-      musicIndex: {
-        energy: avgEnergy,
-        valence: avgValence,
-        danceability: avgDanceability,
-        acousticness: avgAcousticness,
-        topGenres,
-        uniqueScore,
-        colorPalette,
-        // Add the high precision seed for image generation
-        imageSeed: normalizedSeed
-      },
+      musicIndex,
       lastUpdated: new Date().toISOString()
     };
   } catch (error) {
     console.error("Error fetching real user data:", error);
     throw new Error("Failed to fetch data from Spotify API");
-  }
-};
-
-/**
- * Gera dados para o script Python local de geração de imagem
- */
-const generateLocalMusicImageData = (userId: string, musicData: any) => {
-  try {
-    // Criar um objeto com os dados para o arquivo JSON
-    const data = {
-      user_id: userId,
-      timestamp: Date.now(),
-      music_data: musicData
-    };
-    
-    // Converter para string JSON
-    const jsonData = JSON.stringify(data, null, 2);
-    
-    console.log("Dados preparados para integração com Python:", jsonData.substring(0, 100) + "...");
-    
-    // Aqui poderíamos implementar uma chamada para uma API local ou serviço 
-    // que escreve o arquivo no caminho especificado
-    
-    // Como estamos em um ambiente front-end, não podemos escrever diretamente no sistema de arquivos
-    // Poderíamos usar uma API intermediária para isso
-    
-    return true;
-  } catch (error) {
-    console.error("Erro ao gerar dados para Python:", error);
-    return false;
   }
 };

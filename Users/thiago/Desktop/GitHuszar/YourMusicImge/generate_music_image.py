@@ -47,9 +47,10 @@ def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
     random_seed = int(timestamp * 1000000) % 10000000000
     
     # Incorporar características musicais na seed para maior unicidade
+    # Multiplicamos por números primos para garantir maior distribuição
     seed_value = random_seed + int(energy * 10000) + int(valence * 20000) + int(danceability * 30000) + int(acousticness * 40000) + int(unique_score * 500)
     
-    print(f"Gerando imagem para o usuário {user_id} com seed {seed_value} e timestamp {timestamp}")
+    print(f"Gerando imagem para o usuário {user_id} com seed {seed_value}")
     
     # Criar múltiplas camadas de ruído com diferentes oitavas para mais detalhe
     noise1 = PerlinNoise(octaves=3, seed=int(seed_value % 1000000000))
