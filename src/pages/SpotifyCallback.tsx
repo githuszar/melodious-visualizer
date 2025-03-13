@@ -20,7 +20,10 @@ const SpotifyCallback = () => {
           console.log("Autenticação bem-sucedida, redirecionando para home...");
           toast.success("Autenticação com Spotify concluída!");
           // Adicionar pequeno delay antes do redirecionamento para garantir que os dados sejam salvos
-          setTimeout(() => navigate("/"), 1500);
+          setTimeout(() => {
+            console.log("Redirecionando para a página inicial após autenticação bem-sucedida");
+            navigate("/");
+          }, 1500);
         } else {
           console.error("Falha na autenticação do Spotify");
           setError("Falha na autenticação. Por favor, tente novamente.");

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { UserMusicData } from "@/types/spotify";
 import { isLoggedIn } from "@/services/spotifyAuth";
@@ -90,7 +91,7 @@ const Index = () => {
     return () => {
       clearInterval(loginCheckInterval);
     };
-  }, [loginStatus]);
+  }, [loginStatus, userData]);
   
   const fetchUserData = async (forceRefresh = false) => {
     setIsLoading(true);

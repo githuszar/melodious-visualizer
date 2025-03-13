@@ -28,6 +28,8 @@ const LAST_LOGIN_TIME_KEY = "spotify_last_login_time";
  * Initiates the Spotify OAuth flow
  */
 export const initiateSpotifyLogin = () => {
+  console.log("Iniciando processo de login do Spotify");
+  
   // Limpar quaisquer tokens existentes para garantir nova autenticação
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
@@ -40,6 +42,7 @@ export const initiateSpotifyLogin = () => {
   // Generate a random state value for CSRF protection
   const state = Math.random().toString(36).substring(2, 15);
   localStorage.setItem("spotify_auth_state", state);
+  console.log("Estado de autenticação gerado:", state);
 
   // Construct the authorization URL
   const authUrl = new URL("https://accounts.spotify.com/authorize");
@@ -51,6 +54,8 @@ export const initiateSpotifyLogin = () => {
   // Forçar tela de login do Spotify, garantindo que sempre solicite autenticação
   authUrl.searchParams.append("show_dialog", "true");
 
+  console.log("URL de autenticação do Spotify:", authUrl.toString());
+  
   // Redirect to Spotify auth page
   window.location.href = authUrl.toString();
 };
@@ -59,24 +64,39 @@ export const initiateSpotifyLogin = () => {
  * Handles the callback from Spotify OAuth
  */
 export const handleSpotifyCallback = async (): Promise<boolean> => {
+  console.log("Manipulando callback do Spotify");
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get("code");
   const state = urlParams.get("state");
   const storedState = localStorage.getItem("spotify_auth_state");
   const error = urlParams.get("error");
 
+  console.log("Parâmetros do callback:", { 
+    code: code ? "presente" : "ausente", 
+    state: state, 
+    storedState: storedState,
+    error: error 
+  });
+
   // Clean URL parameters
   window.history.replaceState({}, document.title, window.location.pathname);
 
   // Check for errors or CSRF attack
   if (error) {
+    console.error("Erro na autenticação:", error);
     toast.error("Authentication failed: " + error);
     return false;
   }
 
   if (!code || !state || state !== storedState) {
-    if (!code) toast.error("Authentication code missing");
-    if (state !== storedState) toast.error("State verification failed");
+    if (!code) {
+      console.error("Código de autenticação ausente");
+      toast.error("Authentication code missing");
+    }
+    if (state !== storedState) {
+      console.error("Verificação de estado falhou. Estado recebido:", state, "Estado armazenado:", storedState);
+      toast.error("State verification failed");
+    }
     return false;
   }
 
@@ -84,8 +104,10 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
   localStorage.removeItem("spotify_auth_state");
 
   try {
+    console.log("Trocando código por token...");
     // Exchange code for token
     const tokenResponse = await getSpotifyToken(code);
+    console.log("Token obtido com sucesso");
     
     // Save the token, refresh token and its expiry time
     const expiryTime = Date.now() + tokenResponse.expires_in * 1000;
@@ -93,9 +115,12 @@ export const handleSpotifyCallback = async (): Promise<boolean> => {
     localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
     localStorage.setItem(LAST_LOGIN_TIME_KEY, Date.now().toString());
     
+    console.log("Token salvo com sucesso. Expira em:", new Date(expiryTime).toLocaleString());
+    
     // Save refresh token if available
     if (tokenResponse.refresh_token) {
       localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refresh_token);
+      console.log("Token de atualização salvo com sucesso");
     }
     
     toast.success("Successfully connected to Spotify!");
@@ -121,10 +146,17 @@ const getSpotifyToken = async (code: string): Promise<SpotifyAuthResponse> => {
   body.append('client_secret', CLIENT_SECRET);
   
   try {
+    console.log("Enviando solicitação para obter token");
     const response = await axios.post(tokenUrl, body.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
+    });
+    
+    console.log("Resposta de token recebida:", { 
+      access_token: response.data.access_token ? "presente" : "ausente",
+      refresh_token: response.data.refresh_token ? "presente" : "ausente",
+      expires_in: response.data.expires_in
     });
     
     return response.data;
@@ -141,9 +173,11 @@ const refreshAccessToken = async (): Promise<SpotifyAuthResponse> => {
   const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
   
   if (!refreshToken) {
+    console.error("Nenhum token de atualização disponível");
     throw new Error("No refresh token available");
   }
   
+  console.log("Tentando atualizar o token de acesso");
   const tokenUrl = 'https://accounts.spotify.com/api/token';
   
   const body = new URLSearchParams();
@@ -159,6 +193,8 @@ const refreshAccessToken = async (): Promise<SpotifyAuthResponse> => {
       },
     });
     
+    console.log("Token atualizado com sucesso");
+    
     // Save the new access token and expiry time
     const expiryTime = Date.now() + response.data.expires_in * 1000;
     localStorage.setItem(TOKEN_KEY, response.data.access_token);
@@ -167,6 +203,7 @@ const refreshAccessToken = async (): Promise<SpotifyAuthResponse> => {
     // If we got a new refresh token, save it
     if (response.data.refresh_token) {
       localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refresh_token);
+      console.log("Novo token de atualização salvo");
     }
     
     return response.data;
@@ -201,6 +238,7 @@ export const getAccessToken = async (): Promise<string | null> => {
       console.log("Token expirando em breve, tentando atualizar...");
       // Try to refresh the token
       const refreshResponse = await refreshAccessToken();
+      console.log("Token atualizado com sucesso");
       return refreshResponse.access_token;
     } catch (error) {
       console.error("Failed to refresh token:", error);
@@ -219,9 +257,17 @@ export const getAccessToken = async (): Promise<string | null> => {
  */
 export const isLoggedIn = async (): Promise<boolean> => {
   try {
+    console.log("Verificando status de login...");
     const token = await getAccessToken();
     const isValid = token !== null;
     console.log("Status de login verificado:", isValid);
+    
+    // Se temos um token válido, verificar também se temos a data do último login
+    if (isValid) {
+      const lastLoginTime = localStorage.getItem(LAST_LOGIN_TIME_KEY);
+      console.log("Último login:", lastLoginTime ? new Date(parseInt(lastLoginTime)).toLocaleString() : "nunca");
+    }
+    
     return isValid;
   } catch (error) {
     console.error("Erro ao verificar status de login:", error);

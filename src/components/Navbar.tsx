@@ -12,22 +12,34 @@ const Navbar = () => {
   useEffect(() => {
     // Verificar status de login quando o componente é montado
     const checkLoginStatus = async () => {
-      const status = await isLoggedIn();
-      setLoggedIn(status);
+      try {
+        const status = await isLoggedIn();
+        console.log("Navbar: Status de login:", status);
+        setLoggedIn(status);
+      } catch (error) {
+        console.error("Navbar: Erro ao verificar login:", error);
+        setLoggedIn(false);
+      }
     };
     
     checkLoginStatus();
     
     // Atualizar status de login quando o localStorage mudar
     const handleStorageChange = async () => {
-      const status = await isLoggedIn();
-      setLoggedIn(status);
+      try {
+        const status = await isLoggedIn();
+        console.log("Navbar: Mudança no localStorage, status de login:", status);
+        setLoggedIn(status);
+      } catch (error) {
+        console.error("Navbar: Erro ao verificar login após mudança no storage:", error);
+        setLoggedIn(false);
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
     
-    // Verificar status de login periodicamente (a cada 30 segundos)
-    const intervalId = setInterval(checkLoginStatus, 30000);
+    // Verificar status de login periodicamente (a cada 15 segundos)
+    const intervalId = setInterval(checkLoginStatus, 15000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -36,30 +48,13 @@ const Navbar = () => {
   }, []);
 
   const handleLogin = () => {
-    // Garantir que quaisquer tokens antigos sejam removidos antes de iniciar novo login
-    localStorage.removeItem("spotify_token");
-    localStorage.removeItem("spotify_token_expiry");
-    localStorage.removeItem("spotify_refresh_token");
-    localStorage.removeItem("spotify_auth_state");
-    localStorage.removeItem("music_user_data");
-    localStorage.removeItem("music_image");
-    localStorage.removeItem("spotify_user");
-    localStorage.removeItem("spotify_last_login_time");
-    
-    // Limpar também qualquer cookie relacionado ao Spotify
-    document.cookie.split(";").forEach(cookie => {
-      const [name] = cookie.trim().split("=");
-      if (name.includes("spotify")) {
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
-      }
-    });
-    
-    // Iniciar nova autenticação
+    console.log("Navbar: Iniciando processo de login");
     initiateSpotifyLogin();
   };
 
   const handleLogout = async () => {
     try {
+      console.log("Navbar: Iniciando processo de logout");
       await logout();
       setLoggedIn(false);
       toast.success("Logout realizado com sucesso. Página será recarregada.");
