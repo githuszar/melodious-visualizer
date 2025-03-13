@@ -18,6 +18,7 @@ const PerlinCanvas = ({
 }: PerlinCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+  const hasDrawnRef = useRef<boolean>(false);
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -26,13 +27,27 @@ const PerlinCanvas = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     
+    // Evitar redesenhar se já foi desenhado (para consistência)
+    if (hasDrawnRef.current && !animated) {
+      console.log("Canvas já renderizado, pulando para manter consistência");
+      return;
+    }
+    
+    // Limpar qualquer animação anterior
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    
+    console.log(`Gerando imagem com seed: ${musicIndex.imageSeed || 'N/A'}`);
+    
     // Generate the perlin noise image
     const { draw } = generatePerlinImage(musicIndex, size);
     
     // Draw the initial image
     draw(ctx);
+    hasDrawnRef.current = true;
     
-    // If animated, add subtle animation
+    // Se animated for true, adicione animação sutil
     if (animated) {
       let offset = 0;
       
@@ -63,12 +78,18 @@ const PerlinCanvas = ({
     };
   }, [musicIndex, size, animated]);
   
+  // Forçar re-render quando o seed mudar significativamente
+  useEffect(() => {
+    hasDrawnRef.current = false;
+  }, [musicIndex.imageSeed]);
+  
   return (
     <canvas 
       ref={canvasRef} 
       width={size} 
       height={size} 
       className={`rounded-xl ${className}`}
+      data-seed={musicIndex.imageSeed}
     />
   );
 };

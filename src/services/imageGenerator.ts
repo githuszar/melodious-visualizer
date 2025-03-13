@@ -76,7 +76,7 @@ class PerlinNoise {
     // Normalize to [0,1]
     const normalized = (result + 1) / 2;
     
-    // Cache the result
+    // Cache the result for performance
     this.memory[key] = normalized;
     
     return normalized;
@@ -98,12 +98,13 @@ export const generatePerlinImage = (
   const ctx = canvas.getContext("2d")!;
   
   // Use high-precision seed if available, otherwise generate one based on music features
+  // Ensure we have a consistent seed for the same musical profile
   const highPrecisionSeed = musicIndex.imageSeed || Math.floor(
     (musicIndex.energy * 1000000000) + 
     (musicIndex.valence * 10000000) + 
     (musicIndex.danceability * 100000) + 
     (musicIndex.uniqueScore * 1000) +
-    (Date.now() % 100000)
+    (Date.now() % 100000)  // Add current timestamp to make each login unique
   );
   
   // Generate seed with higher precision using multiple music features
@@ -337,3 +338,4 @@ export const generatePerlinImage = (
 export const getMockMusicImage = (musicIndex: MusicIndex, size = 500) => {
   return generatePerlinImage(musicIndex, size);
 };
+

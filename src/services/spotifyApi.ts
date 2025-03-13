@@ -1,3 +1,4 @@
+
 import { 
   SpotifyUser, 
   SpotifyArtist, 
@@ -156,12 +157,16 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
     const user = await getCurrentUser();
     const userProfile = await getUserProfile();
     
-    // Get top artists and tracks
-    const topArtistsResponse = await getTopArtists("medium_term", 50);
-    const topTracksResponse = await getTopTracks("medium_term", 50);
+    console.log("Obtendo dados em tempo real do Spotify para o usuário:", userProfile.name);
     
-    // Get user playlists
-    const userPlaylistsResponse = await getUserPlaylists(10);
+    // Get top artists and tracks - forçar termo curto para dados mais recentes
+    const topArtistsResponse = await getTopArtists("short_term", 50);
+    const topTracksResponse = await getTopTracks("short_term", 50);
+    
+    // Get user playlists - limite aumentado para mais dados
+    const userPlaylistsResponse = await getUserPlaylists(20);
+    
+    console.log(`Obtidos: ${topArtistsResponse.items.length} artistas, ${topTracksResponse.items.length} músicas`);
     
     const topArtists = topArtistsResponse.items;
     const topTracks = topTracksResponse.items;
@@ -233,16 +238,22 @@ export const getRealUserMusicData = async (): Promise<UserMusicData> => {
     
     console.log("Gerando perfil musical único com timestamp:", timestamp);
     console.log("Score único gerado:", uniqueScore);
+    console.log("Seed única para imagem:", normalizedSeed);
     
-    // Gerar dados para o arquivo Python local em caso de integração com o script Python
-    generateLocalMusicImageData(user.id, {
-      energy: avgEnergy,
-      valence: avgValence,
-      danceability: avgDanceability,
-      acousticness: avgAcousticness,
-      uniqueScore,
-      timestamp
-    });
+    // Tentativa de salvar dados no diretório local se estiver no ambiente certo
+    try {
+      // Gerar dados para o arquivo Python local
+      generateLocalMusicImageData(user.id, {
+        energy: avgEnergy,
+        valence: avgValence,
+        danceability: avgDanceability,
+        acousticness: avgAcousticness,
+        uniqueScore,
+        timestamp
+      });
+    } catch (localSaveError) {
+      console.warn("Não foi possível salvar dados localmente:", localSaveError);
+    }
     
     return {
       userId: user.id,
@@ -286,11 +297,13 @@ const generateLocalMusicImageData = (userId: string, musicData: any) => {
     // Converter para string JSON
     const jsonData = JSON.stringify(data, null, 2);
     
-    // Exibir no console para debug
-    console.log("Dados gerados para integração com Python:", jsonData);
+    console.log("Dados preparados para integração com Python:", jsonData.substring(0, 100) + "...");
     
-    // Aqui podemos implementar uma chamada para uma API local ou serviço que escreve o arquivo
-    // Por enquanto, apenas logamos no console
+    // Aqui poderíamos implementar uma chamada para uma API local ou serviço 
+    // que escreve o arquivo no caminho especificado
+    
+    // Como estamos em um ambiente front-end, não podemos escrever diretamente no sistema de arquivos
+    // Poderíamos usar uma API intermediária para isso
     
     return true;
   } catch (error) {

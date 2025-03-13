@@ -150,12 +150,12 @@ def generate_perlin_image(user_id, music_data, output_dir=OUTPUT_DIR):
         "generated_at": datetime.now().isoformat()
     }
     
-    # Salvar a imagem com nome baseado no ID do usuário
-    img_path = f"{output_dir}/{user_id}.png"
+    # Salvar a imagem com nome baseado no ID do usuário e timestamp para garantir unicidade
+    img_path = f"{output_dir}/{user_id}_{int(timestamp)}.png"
     img.save(img_path)
     
     # Salvar metadados separadamente
-    with open(f"{output_dir}/{user_id}_metadata.json", "w") as f:
+    with open(f"{output_dir}/{user_id}_{int(timestamp)}_metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
     
     print(f"Imagem gerada para {user_id} em {img_path}")
@@ -201,10 +201,19 @@ def create_demo_visualization():
         {"name": "Música Triste", "energy": 0.4, "valence": 0.2, "danceability": 0.4, "acousticness": 0.6, "uniqueScore": 45}
     ]
     
+    # Gerar imagem para cada perfil com timestamp atual para garantir unicidade
+    timestamp = time.time()
+    
     # Gerar imagem para cada perfil
     for i, profile in enumerate(profiles):
+        # Garantir unicidade mesmo para perfis de demonstração
+        unique_timestamp = timestamp + i
         user_id = f"demo_user_{i+1}"
-        generate_perlin_image(user_id, profile)
+        
+        # Adicionar timestamp aos dados
+        profile_with_timestamp = {**profile, "timestamp": unique_timestamp * 1000}
+        
+        generate_perlin_image(user_id, profile_with_timestamp)
         print(f"Gerada visualização para '{profile['name']}'")
 
 # Executar o código
@@ -226,7 +235,7 @@ if __name__ == "__main__":
             "danceability": random.uniform(0.4, 0.85),
             "acousticness": random.uniform(0.1, 0.8),
             "uniqueScore": random.randint(30, 95),
-            "timestamp": time.time()
+            "timestamp": time.time() * 1000
         }
         
         current_user_id = f"current_user_{int(time.time())}"
